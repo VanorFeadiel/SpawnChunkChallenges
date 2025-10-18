@@ -18,6 +18,7 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 ### Documentation
 - **Development Guide**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/docs/DEVELOPMENT.md
 - **PZ API Cheat Sheet**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/PZ_API_CHEATSHEET.md
+- **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
 
 ### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
 
