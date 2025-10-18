@@ -1,7 +1,10 @@
-# SpawnChunk Challenge
+# SpawnChunk Challenges
 
 ## Description
-A challenging mod that traps players in their spawn area until they kill enough zombies to escape. This creates an intense survival challenge where players must clear their immediate area before being allowed to explore the wider world.
+Project Zomboid mod that traps players in chunks area until they accomplish certain conditions to leave their chunk based on the selected challenges and options. This creates a progressive challenge system where players must complete various objectives to unlock new areas.
+
+## Future Vision
+This mod is designed with an additive approach where only one chunk is unlocked at a time. Players progressively unlock chunks based on completing different types of challenges, creating a structured progression system.
 
 ## Features
 - **Boundary Enforcement**: Players are teleported back to spawn if they try to leave the 50x50 tile area

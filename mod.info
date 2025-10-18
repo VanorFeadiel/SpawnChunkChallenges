@@ -1,8 +1,8 @@
-name=SpawnChunk Challenge
-id=SpawnChunkChallenge
-description=A challenging mod that traps players in their spawn area until they kill enough zombies to escape. Features visual boundary markers, progress tracking, and rewards upon completion.
+name=SpawnChunk Challenges
+id=SpawnChunkChallenges
+description=Project Zomboid mod that traps players in chunks area until they accomplish certain conditions to leave their chunk based on the selected challenges and options.
 poster=poster.png
 icon=icon.png
-url=https://github.com/VanorFeadiel/SpawnChunkChallenge
+url=https://github.com/VanorFeadiel/SpawnChunkChallenges
 modversion=1.0
 pzversion=41.78.16
