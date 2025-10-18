@@ -15,6 +15,13 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **preview.png**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/preview.png
 - **README.md**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/README.md
 
+### Development Automation Scripts
+- **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh
+- **batch-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/batch-update.sh
+- **new-file.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/new-file.sh
+- **get-claude-urls.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/get-claude-urls.sh
+- **review-template.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/review-template.txt
+
 ### Documentation
 - **Development Guide**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/docs/DEVELOPMENT.md
 - **PZ API Cheat Sheet**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/PZ_API_CHEATSHEET.md
@@ -67,6 +74,24 @@ SpawnChunkChallenges/
 ## Future Development Plans
 
 This mod is designed with an additive approach where only one chunk is unlocked at a time. Players progressively unlock chunks based on completing different types of challenges, creating a structured progression system.
+
+## Development Scripts
+
+The repository includes automation scripts to streamline the development workflow:
+
+- **quick-update.sh** - Quickly commit and push a single file change
+  - Usage: `./quick-update.sh <filename> "commit message"`
+  
+- **batch-update.sh** - Commit and push multiple files at once
+  - Usage: `./batch-update.sh "commit message" file1 file2 file3...`
+  
+- **new-file.sh** - Create a new mod file with boilerplate and add to Git
+  - Usage: `./new-file.sh <filepath> "Description"`
+  
+- **get-claude-urls.sh** - Generate GitHub raw URLs for Claude to fetch
+  - Usage: `./get-claude-urls.sh [file1] [file2]...`
+  
+- **review-template.txt** - Template messages for requesting code reviews from Claude
 
 ## Last Updated
 2025-10-18
