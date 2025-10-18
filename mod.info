@@ -1,8 +1,8 @@
-name=YourModName
-id=YourModID
-description=Your mod description here
+name=SpawnChunk Challenge
+id=SpawnChunkChallenge
+description=A challenging mod that traps players in their spawn area until they kill enough zombies to escape. Features visual boundary markers, progress tracking, and rewards upon completion.
 poster=poster.png
 icon=icon.png
-url=
+url=https://github.com/VanorFeadiel/SpawnChunkChallenge
 modversion=1.0
 pzversion=41.78.16
