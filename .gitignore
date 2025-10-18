@@ -1,0 +1,35 @@
+# Project Zomboid Mod .gitignore
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
+
+# Log files
+*.log
+
+# Compiled files (if any)
+*.o
+*.obj
+
+# Project Zomboid specific
+# Add any mod-specific files to ignore here
