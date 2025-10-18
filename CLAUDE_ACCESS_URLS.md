@@ -18,16 +18,9 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 ### Documentation
 - **Development Guide**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/docs/DEVELOPMENT.md
 
-### LUA Scripts (Client-side)
+### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
 
-**Blob URLs (GitHub interface):**
-- **SpawnChunk_Boundary.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Boundary.lua
-- **SpawnChunk_Data.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Data.lua
-- **SpawnChunk_Init.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Init.lua
-- **SpawnChunk_Kills.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Kills.lua
-- **SpawnChunk_Visual.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Visual.lua
-
-**Raw URLs (Direct file content):**
+**Use these RAW URLs (Claude can access these):**
 - **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Boundary.lua
 - **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Data.lua
 - **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Init.lua
@@ -36,7 +29,9 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 
 ## Usage Instructions for Claude
 
-To access any file in this repository, Claude should use the direct blob URLs above. Each URL points to the raw file content that Claude can read and analyze.
+**IMPORTANT**: Claude needs to use the RAW URLs (raw.githubusercontent.com) - NOT the blob URLs (github.com/blob). 
+
+The RAW URLs above will give Claude direct access to the file content for analysis and planning.
 
 ## Mod Structure Overview
 
