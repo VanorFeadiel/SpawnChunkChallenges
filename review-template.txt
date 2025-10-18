@@ -1,0 +1,53 @@
+# FILENAME: review-template.txt
+# Quick Review Template
+# Copy and customize this for Claude
+
+Working on [FEATURE/BUG].
+
+File index: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/refs/heads/main/CLAUDE_ACCESS_URLS.md
+
+Current issue: [DESCRIBE]
+
+Focus: [SPECIFIC FILES]
+
+Goal: [WHAT YOU WANT]
+
+---
+
+# Alternative: Specific File Review
+# Use when you know exactly which file needs work
+
+Review [FILENAME].
+
+URL: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/[FILENAME]
+
+Issue: [DESCRIBE PROBLEM]
+
+Expected: [WHAT SHOULD HAPPEN]
+
+Actual: [WHAT ACTUALLY HAPPENS]
+
+Error log (if any):
+```
+[PASTE ERROR]
+```
+
+Please provide complete fixed file.
+
+---
+
+# Alternative: Multi-File Fix
+# Use when issue spans multiple files
+
+Fix [ISSUE] across multiple files.
+
+File index: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/refs/heads/main/CLAUDE_ACCESS_URLS.md
+
+Files involved:
+- [FILE1]
+- [FILE2]
+- [FILE3]
+
+Problem: [DESCRIBE]
+
+Provide complete fixed files for each.
