@@ -19,11 +19,20 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **Development Guide**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/docs/DEVELOPMENT.md
 
 ### LUA Scripts (Client-side)
+
+**Blob URLs (GitHub interface):**
 - **SpawnChunk_Boundary.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Boundary.lua
 - **SpawnChunk_Data.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Data.lua
 - **SpawnChunk_Init.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Init.lua
 - **SpawnChunk_Kills.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Kills.lua
 - **SpawnChunk_Visual.lua**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/media/lua/client/SpawnChunk_Visual.lua
+
+**Raw URLs (Direct file content):**
+- **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Boundary.lua
+- **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Data.lua
+- **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Init.lua
+- **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Kills.lua
+- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Visual.lua
 
 ## Usage Instructions for Claude
 
