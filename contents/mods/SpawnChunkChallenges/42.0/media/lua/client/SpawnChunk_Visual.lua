@@ -1,5 +1,5 @@
--- SpawnChunk_Visual.lua (WORKING VERSION - Based on Enclosure Challenge)
--- Ground markers and map symbols that actually work!
+-- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES)
+-- Ground markers, map boundary lines, and HUD
 
 SpawnChunk = SpawnChunk or {}
 
@@ -33,7 +33,7 @@ end
 function SpawnChunk.createGroundMarkers()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
-    if data.isComplete then return end -- Don't show after completion
+    if data.isComplete then return end
     
     -- Remove old markers first
     SpawnChunk.removeGroundMarkers()
@@ -51,15 +51,13 @@ function SpawnChunk.createGroundMarkers()
     
     -- Color: Yellow for active challenge
     local r, g, b = 1, 1, 0
-    local alpha = 0.8
     
-    -- Add markers every 5 squares to reduce clutter
+    -- Add markers on EVERY boundary tile (no skipping)
     for i, eSq in ipairs(edgeSquares) do
-        if i % 5 == 0 then  -- Every 5th square
-            local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
-            if sq then
-                -- Use "X" stamp (builtin) - size 0.3 for subtle markers
-                local marker = wm:addGridSquareMarker("X", "X", sq, r, g, b, true, 0.3)
+        local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
+        if sq then
+            local marker = wm:addGridSquareMarker(nil, "X", sq, r, g, b, true, 0.3)
+            if marker then
                 table.insert(SpawnChunk.boundaryMarkers, marker)
             end
         end
@@ -68,8 +66,10 @@ function SpawnChunk.createGroundMarkers()
     -- Add spawn point marker (green, larger)
     local spawnSq = getCell():getOrCreateGridSquare(data.spawnX, data.spawnY, data.spawnZ)
     if spawnSq then
-        local spawnMarker = wm:addGridSquareMarker("X", "X", spawnSq, 0, 1, 0, true, 1)
-        table.insert(SpawnChunk.boundaryMarkers, spawnMarker)
+        local spawnMarker = wm:addGridSquareMarker(nil, "SPAWN", spawnSq, 0, 1, 0, true, 1)
+        if spawnMarker then
+            table.insert(SpawnChunk.boundaryMarkers, spawnMarker)
+        end
     end
     
     print("Created " .. #SpawnChunk.boundaryMarkers .. " boundary markers")
@@ -103,14 +103,69 @@ Events.OnGameStart.Add(function()
     Events.OnTick.Add(checkInit)
 end)
 
+-- Also recreate ground markers after respawn (not just on game start)
+Events.OnCreatePlayer.Add(function(playerIndex, player)
+    -- Wait for initialization after respawn
+    local timer = 0
+    local function checkRespawnInit()
+        timer = timer + 1
+        if timer >= 180 then -- ~3 seconds (more time after respawn)
+            local data = SpawnChunk.getData()
+            if data.isInitialized and not data.markersCreated then
+                SpawnChunk.createGroundMarkers()
+                print("SpawnChunk_Visual: Recreated ground markers after respawn")
+            end
+            Events.OnTick.Remove(checkRespawnInit)
+        end
+    end
+    Events.OnTick.Add(checkRespawnInit)
+end)
+
 -- Remove markers on completion
 local oldOnVictory = SpawnChunk.onVictory
 function SpawnChunk.onVictory()
     if oldOnVictory then oldOnVictory() end
     SpawnChunk.removeGroundMarkers()
+    SpawnChunk.removeMapSymbol()  -- FIX: Also remove map boundary lines
+    print("SpawnChunk_Visual: Cleaned up all visual markers on victory")
 end
 
------------------------  MAP SYMBOLS  ---------------------------
+-----------------------  MAP SYMBOLS & BOUNDARY LINES  ---------------------------
+
+-- Draw a line on the map between two points using densely placed symbols
+function SpawnChunk.drawMapLine(symbolsAPI, startX, startY, endX, endY, r, g, b, scale)
+    -- Calculate distance and steps needed
+    local dx = endX - startX
+    local dy = endY - startY
+    local distance = math.sqrt(dx*dx + dy*dy)
+    
+    -- Place symbols every ~0.5 world units for smooth line
+    local steps = math.max(1, math.floor(distance / 0.5))
+    
+    local stepX = dx / steps
+    local stepY = dy / steps
+    
+    -- Initialize storage for our symbols if needed
+    if not SpawnChunk.mapLineSymbols then
+        SpawnChunk.mapLineSymbols = {}
+    end
+    
+    -- Draw line by placing many small symbols
+    for i = 0, steps do
+        local worldX = startX + stepX * i
+        local worldY = startY + stepY * i
+        
+        -- Use tiny circle texture "c" (same as Draw On Map mod uses)
+        local sym = symbolsAPI:addTexture("c", worldX, worldY)
+        if sym then
+            sym:setRGBA(r, g, b, 1.0)
+            sym:setAnchor(0.5, 0.5)
+            sym:setScale(scale)
+            -- Store reference to our symbol
+            table.insert(SpawnChunk.mapLineSymbols, sym)
+        end
+    end
+end
 
 function SpawnChunk.addMapSymbol()
     local data = SpawnChunk.getData()
@@ -139,19 +194,48 @@ function SpawnChunk.addMapSymbol()
         return 
     end
     
-    -- Remove old symbol if exists
+    -- Remove old symbols if exists
     SpawnChunk.removeMapSymbol()
     
-    -- Add symbol at spawn point
-    local sym = symAPI:addTexture("X", data.spawnX, data.spawnY)
-    if sym then
-        sym:setAnchor(0.5, 0.5)
-        -- Green for spawn point
-        sym:setRGBA(0, 1, 0, 1)
-        SpawnChunk.mapSymbol = sym
-        print("Map symbol added at spawn: " .. data.spawnX .. ", " .. data.spawnY)
-    else
-        print("ERROR: Failed to create map symbol")
+    -- Initialize storage for our map symbols
+    SpawnChunk.mapLineSymbols = {}
+    
+    print("Drawing boundary lines on map...")
+    
+    -- Calculate boundary corners
+    local size = data.boundarySize
+    local topLeftX = data.spawnX - size
+    local topLeftY = data.spawnY - size
+    local topRightX = data.spawnX + size
+    local topRightY = data.spawnY - size
+    local bottomLeftX = data.spawnX - size
+    local bottomLeftY = data.spawnY + size
+    local bottomRightX = data.spawnX + size
+    local bottomRightY = data.spawnY + size
+    
+    -- Draw 4 boundary lines (yellow)
+    local scale = 0.15  -- Small scale for thin lines
+    local r, g, b = 1, 1, 0  -- Yellow
+    
+    -- Top edge
+    SpawnChunk.drawMapLine(symAPI, topLeftX, topLeftY, topRightX, topRightY, r, g, b, scale)
+    -- Right edge
+    SpawnChunk.drawMapLine(symAPI, topRightX, topRightY, bottomRightX, bottomRightY, r, g, b, scale)
+    -- Bottom edge
+    SpawnChunk.drawMapLine(symAPI, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY, r, g, b, scale)
+    -- Left edge
+    SpawnChunk.drawMapLine(symAPI, bottomLeftX, bottomLeftY, topLeftX, topLeftY, r, g, b, scale)
+    
+    -- Add spawn point marker (small green dot)
+    local spawnSym = symAPI:addTexture("media/ui/Moodle_Icon_Windchill.png", data.spawnX, data.spawnY)
+    if spawnSym then
+        spawnSym:setAnchor(0.5, 0.5)
+        spawnSym:setRGBA(0, 1, 0, 1)  -- Green
+        spawnSym:setScale(0.15)  -- Much smaller than before
+        SpawnChunk.mapSymbol = spawnSym
+        -- Also store in our tracked symbols list
+        table.insert(SpawnChunk.mapLineSymbols, spawnSym)
+        print("Map symbols added - boundary rectangle and spawn point")
     end
 end
 
@@ -167,12 +251,23 @@ function SpawnChunk.removeMapSymbol()
     local symAPI = mapAPI:getSymbolsAPI()
     if not symAPI then return end
     
-    -- Remove symbol at spawn coordinates
-    for i = symAPI:getSymbolCount() - 1, 0, -1 do
-        local sym = symAPI:getSymbolByIndex(i)
-        if sym:getWorldX() == data.spawnX and sym:getWorldY() == data.spawnY then
-            symAPI:removeSymbolByIndex(i)
+    -- Only remove symbols we created (stored in our list)
+    if SpawnChunk.mapLineSymbols then
+        local removedCount = 0
+        for _, sym in ipairs(SpawnChunk.mapLineSymbols) do
+            if sym then
+                -- Find and remove this specific symbol
+                for i = symAPI:getSymbolCount() - 1, 0, -1 do
+                    if symAPI:getSymbolByIndex(i) == sym then
+                        symAPI:removeSymbolByIndex(i)
+                        removedCount = removedCount + 1
+                        break
+                    end
+                end
+            end
         end
+        SpawnChunk.mapLineSymbols = {}
+        print("SpawnChunk_Visual: Removed " .. removedCount .. " map symbols (player symbols preserved)")
     end
 end
 
@@ -181,7 +276,7 @@ Events.OnGameStart.Add(function()
     local timer = 0
     local function checkInit()
         timer = timer + 1
-        if timer >= 180 then -- ~3 seconds (allow more time for map init)
+        if timer >= 180 then -- ~3 seconds (allow time for map init)
             local data = SpawnChunk.getData()
             if data.isInitialized and not data.mapSymbolCreated then
                 SpawnChunk.addMapSymbol()
@@ -193,7 +288,26 @@ Events.OnGameStart.Add(function()
     Events.OnTick.Add(checkInit)
 end)
 
------------------------  ON-SCREEN HUD (Keep existing)  ---------------------------
+-- Also recreate map symbols after respawn (not just on game start)
+Events.OnCreatePlayer.Add(function(playerIndex, player)
+    -- Wait a bit longer after respawn to ensure map is ready
+    local timer = 0
+    local function checkRespawnInit()
+        timer = timer + 1
+        if timer >= 240 then -- ~4 seconds (more time after respawn)
+            local data = SpawnChunk.getData()
+            if data.isInitialized and not data.mapSymbolCreated then
+                SpawnChunk.addMapSymbol()
+                data.mapSymbolCreated = true
+                print("SpawnChunk_Visual: Recreated map symbols after respawn")
+            end
+            Events.OnTick.Remove(checkRespawnInit)
+        end
+    end
+    Events.OnTick.Add(checkRespawnInit)
+end)
+
+-----------------------  ON-SCREEN HUD  ---------------------------
 
 require "ISUI/ISPanel"
 
@@ -259,7 +373,7 @@ Events.OnGameStart.Add(function()
     Events.OnTick.Add(checkUI)
 end)
 
------------------------  WARNING TEXT (Keep existing)  ---------------------------
+-----------------------  WARNING TEXT  ---------------------------
 
 require "ISUI/ISUIElement"
 
@@ -283,8 +397,11 @@ function SpawnChunkBoundaryRenderer:render()
     local dy = math.abs(pl:getY() - data.spawnY)
     local size = data.boundarySize
     
-    -- Show warning when getting close (within 20 tiles)
-    if dx > size - 20 or dy > size - 20 then
+    -- Calculate distance to boundary (same as HUD uses)
+    local distToBoundary = size - math.max(dx, dy)
+    
+    -- Show warning when getting close (matches red text threshold exactly)
+    if distToBoundary < 10 then
         self:drawTextCentre("WARNING: Approaching boundary!", 
             getCore():getScreenWidth() / 2, 
             50, 
@@ -298,4 +415,22 @@ Events.OnGameStart.Add(function()
     local renderer = SpawnChunkBoundaryRenderer:new()
     renderer:initialise()
     renderer:addToUIManager()
+end)
+
+-----------------------  DEATH RESET HANDLER  ---------------------------
+
+-- Clean up visual markers on player death so they can be recreated at new spawn
+Events.OnPlayerDeath.Add(function(player)
+    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
+    
+    -- Remove ground markers
+    SpawnChunk.removeGroundMarkers()
+    
+    -- DO NOT remove map symbols on death - only on victory
+    -- Map symbols will persist and be useful for navigation
+    
+    -- Reset creation flags so visuals will be recreated at new spawn
+    local data = SpawnChunk.getData()
+    data.markersCreated = false
+    -- Keep mapSymbolCreated as true so map isn't recreated
 end)
