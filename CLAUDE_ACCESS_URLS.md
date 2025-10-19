@@ -9,11 +9,24 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 
 ## File URLs for Claude Access
 
-### Core Mod Files
-- **mod.info**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/mod.info
-- **icon.png**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/icon.png
-- **preview.png**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/preview.png
-- **README.md**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/README.md
+### Core Mod Files (Workshop Structure)
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/mod.info
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/icon.png
+- **preview.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/preview.png
+- **README.md**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/README.md
+- **workshop.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/workshop.txt
+
+### Documentation
+- **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
+
+### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
+
+**Use these RAW URLs (Claude can access these):**
+- **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Boundary.lua
+- **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Data.lua
+- **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Init.lua
+- **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Kills.lua
+- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua
 
 ### Development Automation Scripts
 - **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh
@@ -21,20 +34,6 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **new-file.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/new-file.sh
 - **get-claude-urls.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/get-claude-urls.sh
 - **review-template.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/review-template.txt
-
-### Documentation
-- **Development Guide**: https://github.com/VanorFeadiel/SpawnChunkChallenges/blob/main/docs/DEVELOPMENT.md
-- **PZ API Cheat Sheet**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/PZ_API_CHEATSHEET.md
-- **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
-
-### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
-
-**Use these RAW URLs (Claude can access these):**
-- **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Boundary.lua
-- **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Data.lua
-- **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Init.lua
-- **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Kills.lua
-- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/media/lua/client/SpawnChunk_Visual.lua
 
 ## Usage Instructions for Claude
 
@@ -46,20 +45,31 @@ The RAW URLs above will give Claude direct access to the file content for analys
 
 ```
 SpawnChunkChallenges/
-├── mod.info                    # Mod metadata
-├── icon.png                    # Workshop icon
-├── preview.png                 # Workshop preview image
-├── README.md                   # Main documentation
-├── docs/
-│   └── DEVELOPMENT.md          # Development guide
-└── media/
-    └── lua/
-        └── client/             # Client-side LUA scripts
-            ├── SpawnChunk_Boundary.lua    # Boundary enforcement
-            ├── SpawnChunk_Data.lua        # Data management
-            ├── SpawnChunk_Init.lua        # Initialization
-            ├── SpawnChunk_Kills.lua       # Kill tracking
-            └── SpawnChunk_Visual.lua      # Visual feedback & UI
+├── contents/
+│   └── mods/
+│       └── SpawnChunkChallenges/
+│           └── 42.0/                    # Build 42 version
+│               ├── media/
+│               │   └── lua/
+│               │       └── client/      # Client-side LUA scripts
+│               │           ├── SpawnChunk_Boundary.lua    # Boundary enforcement
+│               │           ├── SpawnChunk_Data.lua        # Data management
+│               │           ├── SpawnChunk_Init.lua        # Initialization
+│               │           ├── SpawnChunk_Kills.lua       # Kill tracking
+│               │           └── SpawnChunk_Visual.lua      # Visual feedback & UI
+│               ├── mod.info             # Mod metadata
+│               ├── icon.png             # Workshop icon
+│               ├── preview.png          # Workshop preview image
+│               └── README.md            # Main documentation
+├── workshop.txt                         # Steam Workshop metadata
+├── DEVELOPMENT_ROADMAP.md               # Development plan
+├── CLAUDE_ACCESS_URLS.md                # This file
+└── Development Scripts/                 # Automation scripts (root level)
+    ├── quick-update.sh
+    ├── batch-update.sh
+    ├── new-file.sh
+    ├── get-claude-urls.sh
+    └── review-template.txt
 ```
 
 ## Current Mod Features
@@ -94,5 +104,4 @@ The repository includes automation scripts to streamline the development workflo
 - **review-template.txt** - Template messages for requesting code reviews from Claude
 
 ## Last Updated
-2025-10-18
 2025-10-18
