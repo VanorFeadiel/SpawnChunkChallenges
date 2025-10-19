@@ -10,11 +10,23 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 ## File URLs for Claude Access
 
 ### Core Mod Files (Workshop Structure)
+
+**Root Level (Steam Workshop):**
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/mod.info
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/icon.png
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/poster.png
+- **workshop.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/workshop.txt
+
+**Mod Level (PZ Recognition):**
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/mod.info
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/icon.png
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/poster.png
+
+**Build 42 Level (Build-specific):**
 - **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/mod.info
 - **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/icon.png
-- **preview.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/preview.png
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/poster.png
 - **README.md**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/README.md
-- **workshop.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/workshop.txt
 
 ### Documentation
 - **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
@@ -44,33 +56,45 @@ The RAW URLs above will give Claude direct access to the file content for analys
 ## Mod Structure Overview
 
 ```
-SpawnChunkChallenges/
+ProjectZomboidMod/                           # Git repo root / Workshop folder
+├── mod.info                                 # For Steam Workshop
+├── icon.png                                 # For Steam Workshop  
+├── poster.png                               # For Steam Workshop
+├── workshop.txt                             # Steam Workshop metadata (auto-generated)
 ├── contents/
 │   └── mods/
 │       └── SpawnChunkChallenges/
-│           └── 42.0/                    # Build 42 version
-│               ├── media/
-│               │   └── lua/
-│               │       └── client/      # Client-side LUA scripts
-│               │           ├── SpawnChunk_Boundary.lua    # Boundary enforcement
-│               │           ├── SpawnChunk_Data.lua        # Data management
-│               │           ├── SpawnChunk_Init.lua        # Initialization
-│               │           ├── SpawnChunk_Kills.lua       # Kill tracking
-│               │           └── SpawnChunk_Visual.lua      # Visual feedback & UI
-│               ├── mod.info             # Mod metadata
-│               ├── icon.png             # Workshop icon
-│               ├── preview.png          # Workshop preview image
-│               └── README.md            # Main documentation
-├── workshop.txt                         # Steam Workshop metadata
-├── DEVELOPMENT_ROADMAP.md               # Development plan
-├── CLAUDE_ACCESS_URLS.md                # This file
-└── Development Scripts/                 # Automation scripts (root level)
+│           ├── mod.info                     # For PZ to load mod
+│           ├── icon.png                     # For PZ to load mod
+│           ├── poster.png                   # For PZ to load mod
+│           └── 42.0/                        # Build 42 version folder
+│               ├── mod.info                 # For Build 42 recognition
+│               ├── icon.png                 # For Build 42 recognition
+│               ├── poster.png               # For Build 42 recognition
+│               ├── README.md                # Documentation
+│               └── media/
+│                   └── lua/
+│                       ├── client/          # Client-side LUA scripts
+│                       │   ├── SpawnChunk_Boundary.lua
+│                       │   ├── SpawnChunk_Data.lua
+│                       │   ├── SpawnChunk_Init.lua
+│                       │   ├── SpawnChunk_Kills.lua
+│                       │   └── SpawnChunk_Visual.lua
+│                       └── common/          # Common scripts (required, even if empty)
+├── DEVELOPMENT_ROADMAP.md                   # Development plan
+├── CLAUDE_ACCESS_URLS.md                    # This file
+└── Development Scripts/                     # Automation scripts (root level)
     ├── quick-update.sh
     ├── batch-update.sh
     ├── new-file.sh
     ├── get-claude-urls.sh
     └── review-template.txt
 ```
+
+**Note:** The mod.info, icon.png, and poster.png files must be present at THREE levels:
+1. **Root** - Required by Steam Workshop uploader
+2. **SpawnChunkChallenges/** - Required by Project Zomboid to recognize the mod
+3. **42.0/** - Required by Build 42 to display mod correctly in mod list
 
 ## Current Mod Features
 
@@ -104,6 +128,4 @@ The repository includes automation scripts to streamline the development workflo
 - **review-template.txt** - Template messages for requesting code reviews from Claude
 
 ## Last Updated
-2025-10-18
-2025-10-18
-2025-10-18
+2025-10-19
