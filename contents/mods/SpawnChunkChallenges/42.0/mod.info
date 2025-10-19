@@ -1,0 +1,11 @@
+name=SpawnChunk Challenges
+id=SpawnChunkChallenges
+title=SpawnChunk Challenges
+description=SpawnChunk Challenges
+description=Project Zomboid mod that traps players in chunks area until they accomplish certain conditions to leave their chunk based on the selected challenges and options.
+tags=
+visibility=private
+icon=icon.png
+poster=poster.png
+url=https://github.com/VanorFeadiel/SpawnChunkChallenges
+modversion=0.1
