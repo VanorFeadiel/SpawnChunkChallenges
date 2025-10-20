@@ -1,0 +1,6 @@
+Sandbox_EN = {
+    Sandbox_SpawnChunkChallenge = "Spawn Chunk Challenge",
+
+    Sandbox_SpawnChunkChallenge_BoundarySize = "Spawn chunk size (10–100)",
+    Sandbox_SpawnChunkChallenge_MinZombies   = "Minimum guaranteed zombies near chunk",
+}
