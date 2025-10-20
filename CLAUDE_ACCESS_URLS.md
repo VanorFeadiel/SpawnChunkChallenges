@@ -27,6 +27,9 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/icon.png
 - **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/poster.png
 - **README.md**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/README.md
+### Sandbox Configuration
+- **Sandbox Options**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/sandbox-options.txt
+- **English Translation**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/Translate/EN/Sandbox_EN.txt
 
 ### Documentation
 - **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
@@ -39,6 +42,7 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Init.lua
 - **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Kills.lua
 - **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua
+- **SpawnChunk_Spawner.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/SpawnChunk_Spawner.lua
 
 ### Development Automation Scripts
 - **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh
@@ -79,8 +83,15 @@ ProjectZomboidMod/                           # Git repo root / Workshop folder
 │                       │   ├── SpawnChunk_Data.lua
 │                       │   ├── SpawnChunk_Init.lua
 │                       │   ├── SpawnChunk_Kills.lua
+│                       │   ├── SpawnChunk_Spawner.lua
 │                       │   └── SpawnChunk_Visual.lua
+│                       ├── server/          # Server-side LUA scripts
+│                       ├── shared/          # Shared LUA scripts and components
+│                       │   └── Translate/
+│                       │       └──EN/
+│                       │          └──Sandbox_EN.txt #Contains text describing sandbox option
 │                       └── common/          # Common scripts (required, even if empty)
+│                       └── sandbox-options  # Code for Sandbox options
 ├── DEVELOPMENT_ROADMAP.md                   # Development plan
 ├── CLAUDE_ACCESS_URLS.md                    # This file
 └── Development Scripts/                     # Automation scripts (root level)
