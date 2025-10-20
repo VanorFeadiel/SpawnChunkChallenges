@@ -30,7 +30,7 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 
 ### Documentation
 - **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
-
+- **Template for Cursor**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/CURSOR_CHAT_TEMPLATE.md
 ### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
 
 **Use these RAW URLs (Claude can access these):**
