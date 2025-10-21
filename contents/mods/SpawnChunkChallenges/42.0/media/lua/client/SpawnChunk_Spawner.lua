@@ -144,10 +144,16 @@ function SpawnChunk.ensureMinimumZombies()
             x = playerX + ZombRand(-5, 6)
             y = playerY + ZombRand(-5, 6)
             print("SpawnChunk_Spawner: DEBUG MODE - Spawning close to player")
-        elseif size <= 10 then
-            -- Fallback: spawn within 30x30 centered on spawn (safe in small chunks)
-            x = spawnX + ZombRand(-15, 16)
-            y = spawnY + ZombRand(-15, 16)
+        elseif size <= 20 then
+			-- Small boundary: spawn just outside (size + 5 to size + 10)
+			local spawnOffset = size + ZombRand(5, 11)
+			if ZombRand(2) == 0 then
+				x = spawnX + spawnOffset * (ZombRand(2) == 0 and -1 or 1)
+				y = spawnY + ZombRand(-size, size + 1)
+			else
+				x = spawnX + ZombRand(-size, size + 1)
+				y = spawnY + spawnOffset * (ZombRand(2) == 0 and -1 or 1)
+			end
         else
             -- Spawn 20 tiles outside the boundary (within shout range, accounting for fog)
             local spawnOffset = size + 20

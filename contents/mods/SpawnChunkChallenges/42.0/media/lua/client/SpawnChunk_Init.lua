@@ -29,7 +29,7 @@ function SpawnChunk.initialize()
     local zombieList = cell and cell:getZombieList()
     local totalZombies = zombieList and zombieList:size() or 100
     local baseTarget = math.floor(totalZombies / 9)
-    if baseTarget < 5 then baseTarget = 5 end -- Minimum 5
+    -- if baseTarget < 5 then baseTarget = 5 end -- Minimum 5
     
     -- Scale target based on boundary area (50x50 = 2500 tiles is baseline)
     local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
