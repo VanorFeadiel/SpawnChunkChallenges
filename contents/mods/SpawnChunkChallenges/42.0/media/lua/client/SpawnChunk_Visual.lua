@@ -78,11 +78,6 @@ function SpawnChunk.createGroundMarkers()
     
     print("Created " .. #SpawnChunk.boundaryMarkers .. " boundary markers")
     data.markersCreated = true
-    
-    -- Force refresh of world markers display
-    if wm.refresh then
-        wm:refresh()
-    end
 end
 
 function SpawnChunk.removeGroundMarkers()
@@ -364,6 +359,34 @@ function SpawnChunkHUD:render()
     local distText = "Distance to boundary: " .. math.floor(distToBoundary) .. " tiles"
     local color = distToBoundary < 10 and {r=1, g=0, b=0} or {r=1, g=1, b=1}
     self:drawText(distText, 10, 35, color.r, color.g, color.b, 1, UIFont.Small)
+    
+    -- Debug information (only if debug mode is enabled)
+    local debugMode = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugMode) or false
+    if debugMode then
+        -- Count zombies in loaded cells
+        local nearbyZeds = getCell():getZombieList()
+        local zombieCount = 0
+        if nearbyZeds then
+            for i = 0, nearbyZeds:size() - 1 do
+                local z = nearbyZeds:get(i)
+                if z and not z:isDead() then
+                    zombieCount = zombieCount + 1
+                end
+            end
+        end
+        
+        -- Debug info
+        local yPos = 60
+        self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
+        yPos = yPos + 15
+        self:drawText("Zombie Population: " .. zombieCount, 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        self:drawText("Boundary Size: " .. data.boundarySize .. " tiles", 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        self:drawText("Position: (" .. math.floor(pl:getX()) .. ", " .. math.floor(pl:getY()) .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        self:drawText("Spawn: (" .. data.spawnX .. ", " .. data.spawnY .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
+    end
 end
 
 -- Create and add HUD

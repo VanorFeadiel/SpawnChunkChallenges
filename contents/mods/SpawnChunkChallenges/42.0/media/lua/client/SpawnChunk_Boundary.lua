@@ -66,27 +66,28 @@ function SpawnChunk.teleportToSpawn()
     pl:playSound("WallHit")
     pl:setHaloNote("You cannot leave until the challenge is complete!", 255, 50, 50, 200)
     
-    -- Recreate visual markers after teleportation with proper timing
-    local function recreateMarkers()
-        if SpawnChunk.createGroundMarkers then
-            SpawnChunk.createGroundMarkers()
-        end
+    -- Recreate visual markers using the same method as initial creation
+    -- Remove existing markers
+    if SpawnChunk.removeGroundMarkers then
+        SpawnChunk.removeGroundMarkers()
     end
     
-    -- Multiple attempts to ensure markers are visible
-    local attempts = 0
-    local function delayedMarkerCreation()
-        attempts = attempts + 1
-        recreateMarkers()
-        
-        -- Try multiple times to ensure visibility
-        if attempts < 3 then
-            Events.OnTick.Add(delayedMarkerCreation)
+    -- Reset the flag so markers can be recreated
+    data.markersCreated = false
+    
+    -- Recreate markers with minimal delay
+    local timer = 0
+    local function recreateMarkersDelayed()
+        timer = timer + 1
+        if timer >= 5 then -- ~0.15 second delay (much faster)
+            if SpawnChunk.createGroundMarkers then
+                SpawnChunk.createGroundMarkers()
+                print("SpawnChunk_Boundary: Recreated ground markers after teleportation")
+            end
+            Events.OnTick.Remove(recreateMarkersDelayed)
         end
     end
-    
-    -- Start marker recreation after a short delay
-    Events.OnTick.Add(delayedMarkerCreation)
+    Events.OnTick.Add(recreateMarkersDelayed)
     
     print("Teleportation completed")
 end

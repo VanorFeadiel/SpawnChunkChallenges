@@ -29,7 +29,7 @@ function SpawnChunk.initialize()
     local zombieList = cell and cell:getZombieList()
     local totalZombies = zombieList and zombieList:size() or 100
     local baseTarget = math.floor(totalZombies / 9)
-    if baseTarget < 10 then baseTarget = 10 end -- Minimum 10
+    if baseTarget < 5 then baseTarget = 5 end -- Minimum 5
     
     -- Scale target based on boundary area (50x50 = 2500 tiles is baseline)
     local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
@@ -41,8 +41,8 @@ function SpawnChunk.initialize()
     local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
     local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
     
-    -- Ensure minimum target of 10
-    if target < 10 then target = 10 end
+    -- Ensure minimum target of 5
+    if target < 5 then target = 5 end
     
     -- Store spawn data
     data.spawnX = x
@@ -72,7 +72,10 @@ Events.OnPlayerDeath.Add(function()
     data.isInitialized = false
     data.killCount = 0
     data.isComplete = false
-    print("Challenge reset on death")
+    -- Reset boundary outdoor scan flag (important for additive chunks feature)
+    data.boundaryOutdoorsChecked = false
+    data.isOutdoors = false
+    print("Challenge reset on death (including boundary outdoor status)")
 end)
 
 -- Initialize after a short delay to ensure player is fully loaded

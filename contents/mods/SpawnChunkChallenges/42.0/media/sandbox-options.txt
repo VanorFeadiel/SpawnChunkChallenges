@@ -14,15 +14,15 @@ option SpawnChunkChallenge.MinZombies
 {
     type = integer,
     min = 0,
-    max = 10,
-    default = 3,
+    max = 5,
+    default = 1,
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_MinZombies,
 }
 
 option SpawnChunkChallenge.KillMultiplier
 {
-    type = float,
+    type = double,
     min = 0.5,
     max = 3.0,
     default = 1.0,
@@ -52,4 +52,12 @@ option SpawnChunkChallenge.ShowHUD
     default = true,
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_ShowHUD,
+}
+
+option SpawnChunkChallenge.DebugMode
+{
+    type = boolean,
+    default = false,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_DebugMode,
 }
