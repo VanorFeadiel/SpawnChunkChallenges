@@ -20,6 +20,7 @@ function SpawnChunk.ensureMinimumZombies()
         end
     end
 
+    -- Get minimum zombies from sandbox options
     local minZeds = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.MinZombies) or 3
     if count >= minZeds then return end
 

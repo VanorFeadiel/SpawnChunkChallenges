@@ -17,6 +17,27 @@ function SpawnChunk.isInBounds(x, y)
     return dx <= data.boundarySize and dy <= data.boundarySize
 end
 
+-----------------------  TELEPORTATION FUNCTIONS  ---------------------------
+
+-- Proven teleportation method (based on working RV mod for Build 42)
+function SpawnChunk.doTeleport(pl, x, y, z)
+    if not pl then 
+        print("ERROR: Player object is nil")
+        return false
+    end
+    
+    -- Simple, direct teleportation (Build 42 method)
+    pl:setX(x)
+    pl:setLastX(x)
+    pl:setY(y)
+    pl:setLastY(y)
+    pl:setZ(z)
+    pl:setLastZ(z)
+    
+    print(string.format("Teleported to: %d %d %d", math.floor(x), math.floor(y), math.floor(z)))
+    return true
+end
+
 function SpawnChunk.teleportToSpawn()
     local pl = getPlayer()
     if not pl then return end
@@ -24,16 +45,50 @@ function SpawnChunk.teleportToSpawn()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
     
-    -- Teleport player back to spawn
-    pl:setX(data.spawnX)
-    pl:setY(data.spawnY)
-    pl:setZ(data.spawnZ)
+    -- Store current position for debugging
+    local oldX, oldY, oldZ = pl:getX(), pl:getY(), pl:getZ()
+    
+    -- Check if player is already very close to spawn (prevent unnecessary teleportation)
+    local dx = math.abs(oldX - data.spawnX)
+    local dy = math.abs(oldY - data.spawnY)
+    if dx <= 3 and dy <= 3 then
+        print(string.format("Player already near spawn (%d,%d), skipping teleportation", oldX, oldY))
+        return
+    end
+    
+    -- Simple teleportation (following RV mod pattern)
+    print(string.format("Teleporting from (%d,%d,%d) to spawn (%d,%d,%d)", 
+        oldX, oldY, oldZ, data.spawnX, data.spawnY, data.spawnZ))
+    
+    SpawnChunk.doTeleport(pl, data.spawnX, data.spawnY, data.spawnZ)
     
     -- Play sound and show message
     pl:playSound("WallHit")
     pl:setHaloNote("You cannot leave until the challenge is complete!", 255, 50, 50, 200)
     
-    print("Player teleported back to spawn")
+    -- Recreate visual markers after teleportation with proper timing
+    local function recreateMarkers()
+        if SpawnChunk.createGroundMarkers then
+            SpawnChunk.createGroundMarkers()
+        end
+    end
+    
+    -- Multiple attempts to ensure markers are visible
+    local attempts = 0
+    local function delayedMarkerCreation()
+        attempts = attempts + 1
+        recreateMarkers()
+        
+        -- Try multiple times to ensure visibility
+        if attempts < 3 then
+            Events.OnTick.Add(delayedMarkerCreation)
+        end
+    end
+    
+    -- Start marker recreation after a short delay
+    Events.OnTick.Add(delayedMarkerCreation)
+    
+    print("Teleportation completed")
 end
 
 -----------------------  BOUNDARY ENFORCEMENT  ---------------------------
@@ -55,6 +110,13 @@ function SpawnChunk.checkBoundary()
     
     local x = math.floor(pl:getX())
     local y = math.floor(pl:getY())
+    
+    -- Check if player is already at spawn point (prevent teleportation loop)
+    local dx = math.abs(x - data.spawnX)
+    local dy = math.abs(y - data.spawnY)
+    if dx <= 2 and dy <= 2 then
+        return -- Player is at spawn, no need to teleport
+    end
     
     -- Check if player is outside boundary
     if not SpawnChunk.isInBounds(x, y) then

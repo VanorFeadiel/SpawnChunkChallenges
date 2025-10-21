@@ -16,7 +16,7 @@ function SpawnChunk.getData()
         spawnX = 0,
         spawnY = 0,
         spawnZ = 0,
-        boundarySize = 50,
+        boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50,
         killCount = 0,
         killTarget = 10,
         isComplete = false

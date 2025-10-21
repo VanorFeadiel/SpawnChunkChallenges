@@ -19,3 +19,37 @@ option SpawnChunkChallenge.MinZombies
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_MinZombies,
 }
+
+option SpawnChunkChallenge.KillMultiplier
+{
+    type = float,
+    min = 0.5,
+    max = 3.0,
+    default = 1.0,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_KillMultiplier,
+}
+
+option SpawnChunkChallenge.ShowGroundMarkers
+{
+    type = boolean,
+    default = true,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_ShowGroundMarkers,
+}
+
+option SpawnChunkChallenge.ShowMapSymbols
+{
+    type = boolean,
+    default = true,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_ShowMapSymbols,
+}
+
+option SpawnChunkChallenge.ShowHUD
+{
+    type = boolean,
+    default = true,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_ShowHUD,
+}

@@ -3,4 +3,8 @@ Sandbox_EN = {
 
     Sandbox_SpawnChunkChallenge_BoundarySize = "Spawn chunk size (10–100)",
     Sandbox_SpawnChunkChallenge_MinZombies   = "Minimum guaranteed zombies near chunk",
+    Sandbox_SpawnChunkChallenge_KillMultiplier = "Kill count multiplier (0.5–3.0)",
+    Sandbox_SpawnChunkChallenge_ShowGroundMarkers = "Show ground boundary markers",
+    Sandbox_SpawnChunkChallenge_ShowMapSymbols = "Show map boundary symbols", 
+    Sandbox_SpawnChunkChallenge_ShowHUD = "Show progress HUD",
 }

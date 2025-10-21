@@ -35,6 +35,10 @@ function SpawnChunk.createGroundMarkers()
     if not data.isInitialized then return end
     if data.isComplete then return end
     
+    -- Check if ground markers are enabled in sandbox options
+    local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
+    if not showMarkers then return end
+    
     -- Remove old markers first
     SpawnChunk.removeGroundMarkers()
     
@@ -74,6 +78,11 @@ function SpawnChunk.createGroundMarkers()
     
     print("Created " .. #SpawnChunk.boundaryMarkers .. " boundary markers")
     data.markersCreated = true
+    
+    -- Force refresh of world markers display
+    if wm.refresh then
+        wm:refresh()
+    end
 end
 
 function SpawnChunk.removeGroundMarkers()
@@ -170,6 +179,10 @@ end
 function SpawnChunk.addMapSymbol()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
+    
+    -- Check if map symbols are enabled in sandbox options
+    local showSymbols = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowMapSymbols) ~= false
+    if not showSymbols then return end
     
     -- Open and close map to initialize ISWorldMap_instance
     if not ISWorldMap_instance then
@@ -355,6 +368,10 @@ end
 
 -- Create and add HUD
 local function createHUD()
+    -- Check if HUD is enabled in sandbox options
+    local showHUD = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowHUD) ~= false
+    if not showHUD then return end
+    
     local hud = SpawnChunkHUD:new(10, 100, 300, 80)
     hud:initialise()
     hud:addToUIManager()
@@ -392,6 +409,10 @@ function SpawnChunkBoundaryRenderer:render()
     
     local data = SpawnChunk.getData()
     if not data.isInitialized or data.isComplete then return end
+    
+    -- Check if HUD is enabled in sandbox options
+    local showHUD = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowHUD) ~= false
+    if not showHUD then return end
     
     local dx = math.abs(pl:getX() - data.spawnX)
     local dy = math.abs(pl:getY() - data.spawnY)
