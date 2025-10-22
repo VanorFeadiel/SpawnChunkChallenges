@@ -494,17 +494,17 @@ end)
 -----------------------  DEATH RESET HANDLER  ---------------------------
 
 -- Clean up visual markers on player death so they can be recreated at new spawn
-'Events.OnPlayerDeath.Add(function(player)
-'    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
-'    
-'    -- Remove ground markers
-'    SpawnChunk.removeGroundMarkers()
-'    
-'    -- DO NOT remove map symbols on death - only on victory
-'    -- Map symbols will persist and be useful for navigation
-'    
-'    -- Reset creation flags so visuals will be recreated at new spawn
-'    local data = SpawnChunk.getData()
-'    data.markersCreated = false
-'    -- Keep mapSymbolCreated as true so map isn't recreated
-'end)
+--Events.OnPlayerDeath.Add(function(player)
+--    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
+--    
+--    -- Remove ground markers
+--    SpawnChunk.removeGroundMarkers()
+--    
+--    -- DO NOT remove map symbols on death - only on victory
+--    -- Map symbols will persist and be useful for navigation
+--    
+--    -- Reset creation flags so visuals will be recreated at new spawn
+--    local data = SpawnChunk.getData()
+--    data.markersCreated = false
+--    -- Keep mapSymbolCreated as true so map isn't recreated
+--end)
