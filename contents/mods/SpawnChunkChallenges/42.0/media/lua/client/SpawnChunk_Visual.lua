@@ -414,7 +414,7 @@ function SpawnChunkHUD:render()
         -- Show if debug close spawn is active
         local debugCloseSpawn = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugCloseSpawn) or false
         if debugCloseSpawn then
-            self:drawText("⚠ DEBUG: Close Spawn Active", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)
+            self:drawText("DEBUG: Close Spawn Active", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)
         end
     end
 end
