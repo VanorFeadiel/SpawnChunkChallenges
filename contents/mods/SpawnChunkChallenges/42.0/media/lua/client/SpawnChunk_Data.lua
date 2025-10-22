@@ -19,7 +19,12 @@ function SpawnChunk.getData()
         boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50,
         killCount = 0,
         killTarget = 10,
-        isComplete = false
+        isComplete = false,
+        
+        -- Debug tracking fields (lifetime stats)
+        totalSpawned = 0,        -- Total zombies spawned this life
+        totalSoundWaves = 0,     -- Total sound waves emitted this life
+        maxSoundRadius = 0,      -- Maximum sound radius used this life
     }
     
     return modData.SpawnChunk
@@ -44,6 +49,10 @@ function SpawnChunk.printStatus()
     print("Boundary Size: " .. data.boundarySize)
     print("Kills: " .. data.killCount .. " / " .. data.killTarget)
     print("Complete: " .. tostring(data.isComplete))
+    print("--- Debug Stats ---")
+    print("Total Spawned: " .. (data.totalSpawned or 0))
+    print("Sound Waves: " .. (data.totalSoundWaves or 0))
+    print("Max Sound Radius: " .. (data.maxSoundRadius or 0))
     print("========================")
 end
 
@@ -52,6 +61,9 @@ function SpawnChunk.resetChallenge()
     data.isInitialized = false
     data.killCount = 0
     data.isComplete = false
+    data.totalSpawned = 0
+    data.totalSoundWaves = 0
+    data.maxSoundRadius = 0
     print("Challenge reset!")
     SpawnChunk.initialize()
 end

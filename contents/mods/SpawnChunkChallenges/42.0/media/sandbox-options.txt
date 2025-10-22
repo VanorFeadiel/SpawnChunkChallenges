@@ -61,3 +61,11 @@ option SpawnChunkChallenge.DebugMode
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_DebugMode,
 }
+
+option SpawnChunkChallenge.DebugCloseSpawn
+{
+    type = boolean,
+    default = false,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_DebugCloseSpawn,
+}

@@ -65,17 +65,37 @@ function SpawnChunk.initialize()
     pl:setHaloNote("Challenge Started! Kill " .. target .. " zombies to escape.", 255, 255, 100, 300)
 end
 
--- Initialize when player is created
-Events.OnPlayerDeath.Add(function()
-    -- Reset on death (optional - remove if you want persistence across deaths)
-    local data = SpawnChunk.getData()
+-- Code to Handle Player's Death
+Events.OnPlayerDeath.Add(function(playerWhoJustDied)
+    -- Get the dying player's specific data
+    local modData = playerWhoJustDied:getModData()
+    modData.SpawnChunk = modData.SpawnChunk or {}
+    local data = modData.SpawnChunk
+    
+    -- Reset challenge data
     data.isInitialized = false
     data.killCount = 0
     data.isComplete = false
+    
     -- Reset boundary outdoor scan flag (important for additive chunks feature)
     data.boundaryOutdoorsChecked = false
     data.isOutdoors = false
-    print("Challenge reset on death (including boundary outdoor status)")
+    
+    -- Reset debug tracking stats (lifetime stats reset on death)
+    data.totalSpawned = 0
+    data.totalSoundWaves = 0
+    data.maxSoundRadius = 0
+    
+    -- Reset visual marker flags so they'll be recreated at new spawn
+    data.markersCreated = false
+    -- mapSymbolCreated stays true (keep old symbols on map)
+    
+    print("SpawnChunk_Init: Challenge reset on death (including stats and boundary outdoor status)")
+    
+    -- Clean up ground markers (but keep map symbols)
+    if SpawnChunk.removeGroundMarkers then
+        SpawnChunk.removeGroundMarkers()
+    end
 end)
 
 -- Initialize after a short delay to ensure player is fully loaded

@@ -8,4 +8,5 @@ Sandbox_EN = {
     Sandbox_SpawnChunkChallenge_ShowMapSymbols = "Show map boundary symbols", 
     Sandbox_SpawnChunkChallenge_ShowHUD = "Show progress HUD",
     Sandbox_SpawnChunkChallenge_DebugMode = "Enable debug information",
+	Sandbox_SpawnChunkChallenge_DebugCloseSpawn = "Debug: Spawn zombies 5 tiles from player",
 }

@@ -361,6 +361,9 @@ function SpawnChunkHUD:render()
     self:drawText(distText, 10, 35, color.r, color.g, color.b, 1, UIFont.Small)
     
     -- Debug information (only if debug mode is enabled)
+-- Inside SpawnChunkHUD:render() function, replace the debug section with this:
+
+    -- Debug information (only if debug mode is enabled)
     local debugMode = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugMode) or false
     if debugMode then
         -- Count zombies in loaded cells
@@ -375,17 +378,44 @@ function SpawnChunkHUD:render()
             end
         end
         
-        -- Debug info
+        -- Debug info with spawn/sound tracking
         local yPos = 60
         self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
         yPos = yPos + 15
+        
         self:drawText("Zombie Population: " .. zombieCount, 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
+        
         self:drawText("Boundary Size: " .. data.boundarySize .. " tiles", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
+        
         self:drawText("Position: (" .. math.floor(pl:getX()) .. ", " .. math.floor(pl:getY()) .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
+        
         self:drawText("Spawn: (" .. data.spawnX .. ", " .. data.spawnY .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        -- Spawn/Sound tracking stats
+        self:drawText("--- Spawner Stats ---", 10, yPos, 1, 1, 0, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        local totalSpawned = data.totalSpawned or 0
+        self:drawText("Zombies Spawned: " .. totalSpawned, 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        local totalWaves = data.totalSoundWaves or 0
+        self:drawText("Sound Waves: " .. totalWaves, 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        local maxRadius = data.maxSoundRadius or 0
+        self:drawText("Max Sound Radius: " .. maxRadius .. " tiles", 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        -- Show if debug close spawn is active
+        local debugCloseSpawn = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugCloseSpawn) or false
+        if debugCloseSpawn then
+            self:drawText("⚠ DEBUG: Close Spawn Active", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)
+        end
     end
 end
 
@@ -464,17 +494,17 @@ end)
 -----------------------  DEATH RESET HANDLER  ---------------------------
 
 -- Clean up visual markers on player death so they can be recreated at new spawn
-Events.OnPlayerDeath.Add(function(player)
-    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
-    
-    -- Remove ground markers
-    SpawnChunk.removeGroundMarkers()
-    
-    -- DO NOT remove map symbols on death - only on victory
-    -- Map symbols will persist and be useful for navigation
-    
-    -- Reset creation flags so visuals will be recreated at new spawn
-    local data = SpawnChunk.getData()
-    data.markersCreated = false
-    -- Keep mapSymbolCreated as true so map isn't recreated
-end)
+'Events.OnPlayerDeath.Add(function(player)
+'    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
+'    
+'    -- Remove ground markers
+'    SpawnChunk.removeGroundMarkers()
+'    
+'    -- DO NOT remove map symbols on death - only on victory
+'    -- Map symbols will persist and be useful for navigation
+'    
+'    -- Reset creation flags so visuals will be recreated at new spawn
+'    local data = SpawnChunk.getData()
+'    data.markersCreated = false
+'    -- Keep mapSymbolCreated as true so map isn't recreated
+'end)
