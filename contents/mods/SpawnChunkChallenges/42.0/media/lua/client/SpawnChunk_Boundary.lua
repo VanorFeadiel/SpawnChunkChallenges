@@ -9,12 +9,32 @@ SpawnChunk = SpawnChunk or {}
 function SpawnChunk.isInBounds(x, y)
     local data = SpawnChunk.getData()
     if not data.isInitialized then return true end
-    if data.isComplete then return true end -- Allow free movement after completion
     
-    local dx = math.abs(x - data.spawnX)
-    local dy = math.abs(y - data.spawnY)
-    
-    return dx <= data.boundarySize and dy <= data.boundarySize
+    -- In chunk mode, check if position is within ANY unlocked chunk
+    if data.chunkMode then
+        local unlockedChunks = SpawnChunk.getUnlockedChunks()
+        if #unlockedChunks == 0 then return false end
+        
+        -- Check if player is within any unlocked chunk
+        for _, chunkKey in ipairs(unlockedChunks) do
+            local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
+            if minX then
+                if x >= minX and x <= maxX and y >= minY and y <= maxY then
+                    return true
+                end
+            end
+        end
+        
+        return false  -- Not in any unlocked chunk
+    else
+        -- Classic mode: single boundary check
+        if data.isComplete then return true end -- Allow free movement after completion
+        
+        local dx = math.abs(x - data.spawnX)
+        local dy = math.abs(y - data.spawnY)
+        
+        return dx <= data.boundarySize and dy <= data.boundarySize
+    end
 end
 
 -----------------------  TELEPORTATION FUNCTIONS  ---------------------------
@@ -67,7 +87,13 @@ function SpawnChunk.teleportToSpawn()
     
     -- Play sound and show message
     pl:playSound("WallHit")
-    pl:setHaloNote("You cannot leave until the challenge is complete!", 255, 50, 50, 200)
+    
+    local data = SpawnChunk.getData()
+    if data.chunkMode then
+        pl:setHaloNote("You cannot leave unlocked chunks!", 255, 50, 50, 200)
+    else
+        pl:setHaloNote("You cannot leave until the challenge is complete!", 255, 50, 50, 200)
+    end
     
     -- Recreate THIS character's visual markers
     -- Remove existing markers for this character

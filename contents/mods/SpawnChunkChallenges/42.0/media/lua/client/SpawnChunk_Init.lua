@@ -17,7 +17,14 @@ function SpawnChunk.initialize()
     if data.isInitialized then
         print("[" .. username .. "] Challenge already initialized")
         print("Spawn point: " .. data.spawnX .. ", " .. data.spawnY)
-        print("Kills: " .. data.killCount .. " / " .. data.killTarget)
+        if data.chunkMode then
+            local currentChunk = data.chunks and data.chunks[data.currentChunk]
+            if currentChunk then
+                print("Current Chunk: " .. data.currentChunk .. " - Kills: " .. currentChunk.killCount .. " / " .. currentChunk.killTarget)
+            end
+        else
+            print("Kills: " .. data.killCount .. " / " .. data.killTarget)
+        end
         return
     end
     
@@ -25,6 +32,9 @@ function SpawnChunk.initialize()
     local x = math.floor(pl:getX())
     local y = math.floor(pl:getY())
     local z = math.floor(pl:getZ())
+    
+    -- Check if chunk mode is enabled
+    local chunkModeEnabled = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.EnableChunkMode) or false
     
     -- Calculate kill target based on cell zombie population and boundary area
     local cell = getCell()
@@ -49,22 +59,54 @@ function SpawnChunk.initialize()
     data.spawnX = x
     data.spawnY = y
     data.spawnZ = z
-    data.boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
-    data.killCount = 0
-    data.killTarget = target
-    data.isComplete = false
+    data.boundarySize = boundarySize
+    data.chunkMode = chunkModeEnabled
     data.isInitialized = true
     
-    print("=== SPAWN CHUNK CHALLENGE STARTED ===")
-    print("Character: " .. username)
-    print("Spawn: " .. x .. ", " .. y .. ", " .. z)
-    print("Boundary: " .. data.boundarySize .. " tiles")
-    print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
-    print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
-    print("====================================")
-    
-    -- Show on-screen message
-    pl:setHaloNote("Challenge Started! Kill " .. target .. " zombies to escape.", 255, 255, 100, 300)
+    -- Initialize based on mode
+    if chunkModeEnabled then
+        -- CHUNK MODE: Initialize first chunk (chunk_0_0)
+        data.currentChunk = "chunk_0_0"
+        data.chunks = {}
+        
+        local firstChunk = SpawnChunk.initChunk("chunk_0_0", true, false)
+        firstChunk.killTarget = target
+        firstChunk.killCount = 0
+        
+        -- Legacy fields kept at 0 for compatibility
+        data.killCount = 0
+        data.killTarget = 0
+        data.isComplete = false
+        
+        print("=== SPAWN CHUNK CHALLENGE STARTED (CHUNK MODE) ===")
+        print("Character: " .. username)
+        print("Spawn: " .. x .. ", " .. y .. ", " .. z)
+        print("Boundary Size: " .. data.boundarySize .. " tiles per chunk")
+        print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
+        print("First Chunk: chunk_0_0")
+        print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
+        print("===================================================")
+        
+        -- Show on-screen message
+        pl:setHaloNote("Chunk Challenge Started! Kill " .. target .. " zombies to unlock adjacent chunks.", 255, 255, 100, 300)
+    else
+        -- CLASSIC MODE: Single boundary
+        data.killCount = 0
+        data.killTarget = target
+        data.isComplete = false
+        data.currentChunk = "chunk_0_0"  -- Set for compatibility but not used
+        
+        print("=== SPAWN CHUNK CHALLENGE STARTED (CLASSIC MODE) ===")
+        print("Character: " .. username)
+        print("Spawn: " .. x .. ", " .. y .. ", " .. z)
+        print("Boundary: " .. data.boundarySize .. " tiles")
+        print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
+        print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
+        print("====================================================")
+        
+        -- Show on-screen message
+        pl:setHaloNote("Challenge Started! Kill " .. target .. " zombies to escape.", 255, 255, 100, 300)
+    end
 end
 
 -- Code to Handle Player's Death - CHARACTER SPECIFIC
@@ -82,6 +124,13 @@ Events.OnPlayerDeath.Add(function(playerWhoJustDied)
     data.isInitialized = false
     data.killCount = 0
     data.isComplete = false
+    
+    -- Reset chunk data if in chunk mode
+    if data.chunkMode then
+        data.chunks = {}
+        data.currentChunk = "chunk_0_0"
+        print("[" .. username .. "] Chunk data reset on death")
+    end
     
     -- Reset boundary outdoor scan flag (important for additive chunks feature)
     data.boundaryOutdoorsChecked = false

@@ -236,7 +236,18 @@ end
 -----------------------  ZOMBIE SPAWNING SYSTEM  ---------------------------
 
 function SpawnChunk.spawnZombies(count, data, pl)
-    local spawnX, spawnY = data.spawnX, data.spawnY
+    -- In chunk mode, use current chunk center; otherwise use spawn point
+    local spawnX, spawnY
+    if data.chunkMode and data.currentChunk then
+        spawnX, spawnY = SpawnChunk.getChunkCenter(data.currentChunk, data)
+        if not spawnX then
+            -- Fallback to original spawn if chunk center calculation fails
+            spawnX, spawnY = data.spawnX, data.spawnY
+        end
+    else
+        spawnX, spawnY = data.spawnX, data.spawnY
+    end
+    
     local size = data.boundarySize
     
     local username = SpawnChunk.getUsername()

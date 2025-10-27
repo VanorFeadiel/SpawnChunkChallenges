@@ -28,35 +28,73 @@ end
 
 -----------------------  GROUND BOUNDARY MARKERS  ---------------------------
 
-function SpawnChunk.getBoundaryEdgeSquares()
-    local data = SpawnChunk.getData()
-    if not data.isInitialized then return {} end
+-- Get boundary edge squares for a specific chunk
+function SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
+    local centerX, centerY = SpawnChunk.getChunkCenter(chunkKey, data)
+    if not centerX then return {} end
     
-    local spawnX = data.spawnX
-    local spawnY = data.spawnY
     local size = data.boundarySize
-    
     local edgeSquares = {}
     
     -- Top and bottom edges
-    for x = spawnX - size, spawnX + size do
-        table.insert(edgeSquares, {x = x, y = spawnY - size})  -- Top
-        table.insert(edgeSquares, {x = x, y = spawnY + size})  -- Bottom
+    for x = centerX - size, centerX + size do
+        table.insert(edgeSquares, {x = x, y = centerY - size})  -- Top
+        table.insert(edgeSquares, {x = x, y = centerY + size})  -- Bottom
     end
     
     -- Left and right edges (skip corners already added)
-    for y = spawnY - size + 1, spawnY + size - 1 do
-        table.insert(edgeSquares, {x = spawnX - size, y = y})  -- Left
-        table.insert(edgeSquares, {x = spawnX + size, y = y})  -- Right
+    for y = centerY - size + 1, centerY + size - 1 do
+        table.insert(edgeSquares, {x = centerX - size, y = y})  -- Left
+        table.insert(edgeSquares, {x = centerX + size, y = y})  -- Right
     end
     
     return edgeSquares
 end
 
+-- Get all boundary edge squares (supports both classic and chunk mode)
+function SpawnChunk.getBoundaryEdgeSquares()
+    local data = SpawnChunk.getData()
+    if not data.isInitialized then return {} end
+    
+    local allEdgeSquares = {}
+    
+    if data.chunkMode then
+        -- Get boundaries for all unlocked chunks
+        local unlockedChunks = SpawnChunk.getUnlockedChunks()
+        for _, chunkKey in ipairs(unlockedChunks) do
+            local chunkEdges = SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
+            for _, edge in ipairs(chunkEdges) do
+                table.insert(allEdgeSquares, edge)
+            end
+        end
+    else
+        -- Classic mode: single boundary
+        local spawnX = data.spawnX
+        local spawnY = data.spawnY
+        local size = data.boundarySize
+        
+        -- Top and bottom edges
+        for x = spawnX - size, spawnX + size do
+            table.insert(allEdgeSquares, {x = x, y = spawnY - size})  -- Top
+            table.insert(allEdgeSquares, {x = x, y = spawnY + size})  -- Bottom
+        end
+        
+        -- Left and right edges (skip corners already added)
+        for y = spawnY - size + 1, spawnY + size - 1 do
+            table.insert(allEdgeSquares, {x = spawnX - size, y = y})  -- Left
+            table.insert(allEdgeSquares, {x = spawnX + size, y = y})  -- Right
+        end
+    end
+    
+    return allEdgeSquares
+end
+
 function SpawnChunk.createGroundMarkers()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
-    if data.isComplete then return end
+    
+    -- In classic mode only, skip if complete
+    if not data.chunkMode and data.isComplete then return end
     
     -- Check if ground markers are enabled in sandbox options
     local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
@@ -77,13 +115,34 @@ function SpawnChunk.createGroundMarkers()
     
     local markerStorage = SpawnChunk.getMarkerStorage()
     
-    -- Color: Yellow for active challenge
-    local r, g, b = 1, 1, 0
+    -- In chunk mode, we'll color-code chunks
+    -- For now, just use yellow for all boundaries
+    -- (Future enhancement: different colors for completed vs active chunks)
     
     -- Add markers on EVERY boundary tile (no skipping)
     for i, eSq in ipairs(edgeSquares) do
         local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
         if sq then
+            -- Determine color based on mode and chunk status
+            local r, g, b = 1, 1, 0  -- Yellow default
+            
+            -- In chunk mode, check if this position is in current or completed chunk
+            if data.chunkMode then
+                -- Find which chunk this edge belongs to
+                local chunkKey = SpawnChunk.getChunkKeyFromPosition(eSq.x, eSq.y, data)
+                local chunkData = SpawnChunk.getChunkData(chunkKey)
+                
+                if chunkData then
+                    if chunkData.completed then
+                        r, g, b = 0, 1, 0  -- Green for completed chunks
+                    elseif chunkKey == data.currentChunk then
+                        r, g, b = 1, 1, 0  -- Yellow for current chunk
+                    else
+                        r, g, b = 1, 0.5, 0  -- Orange for other unlocked chunks
+                    end
+                end
+            end
+            
             local marker = wm:addGridSquareMarker(nil, "X", sq, r, g, b, true, 0.3)
             if marker then
                 table.insert(markerStorage, marker)
@@ -252,36 +311,76 @@ function SpawnChunk.addMapSymbol()
     
     print("[" .. username .. "] Drawing boundary lines on map...")
     
-    -- Calculate boundary corners
-    local size = data.boundarySize
-    local topLeftX = data.spawnX - size
-    local topLeftY = data.spawnY - size
-    local topRightX = data.spawnX + size
-    local topRightY = data.spawnY - size
-    local bottomLeftX = data.spawnX - size
-    local bottomLeftY = data.spawnY + size
-    local bottomRightX = data.spawnX + size
-    local bottomRightY = data.spawnY + size
-    
-    -- Draw 4 boundary lines (yellow)
     local scale = 0.15  -- Small scale for thin lines
-    local r, g, b = 1, 1, 0  -- Yellow
     
-    -- Draw lines with error handling
-    local success, err = pcall(function()
-        -- Top edge
-        SpawnChunk.drawMapLine(symAPI, topLeftX, topLeftY, topRightX, topRightY, r, g, b, scale)
-        -- Right edge
-        SpawnChunk.drawMapLine(symAPI, topRightX, topRightY, bottomRightX, bottomRightY, r, g, b, scale)
-        -- Bottom edge
-        SpawnChunk.drawMapLine(symAPI, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY, r, g, b, scale)
-        -- Left edge
-        SpawnChunk.drawMapLine(symAPI, bottomLeftX, bottomLeftY, topLeftX, topLeftY, r, g, b, scale)
-    end)
-    
-    if not success then
-        print("[" .. username .. "] ERROR drawing map lines: " .. tostring(err))
-        return
+    -- Draw boundaries based on mode
+    if data.chunkMode then
+        -- CHUNK MODE: Draw boundaries for all unlocked chunks
+        local unlockedChunks = SpawnChunk.getUnlockedChunks()
+        
+        for _, chunkKey in ipairs(unlockedChunks) do
+            local chunkData = SpawnChunk.getChunkData(chunkKey)
+            local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
+            
+            if minX then
+                -- Determine color based on chunk status
+                local r, g, b
+                if chunkData and chunkData.completed then
+                    r, g, b = 0, 1, 0  -- Green for completed
+                elseif chunkKey == data.currentChunk then
+                    r, g, b = 1, 1, 0  -- Yellow for current
+                else
+                    r, g, b = 1, 0.5, 0  -- Orange for other unlocked
+                end
+                
+                -- Draw 4 boundary lines for this chunk
+                local success, err = pcall(function()
+                    -- Top edge
+                    SpawnChunk.drawMapLine(symAPI, minX, minY, maxX, minY, r, g, b, scale)
+                    -- Right edge
+                    SpawnChunk.drawMapLine(symAPI, maxX, minY, maxX, maxY, r, g, b, scale)
+                    -- Bottom edge
+                    SpawnChunk.drawMapLine(symAPI, maxX, maxY, minX, maxY, r, g, b, scale)
+                    -- Left edge
+                    SpawnChunk.drawMapLine(symAPI, minX, maxY, minX, minY, r, g, b, scale)
+                end)
+                
+                if not success then
+                    print("[" .. username .. "] ERROR drawing map lines for " .. chunkKey .. ": " .. tostring(err))
+                end
+            end
+        end
+    else
+        -- CLASSIC MODE: Single boundary
+        local size = data.boundarySize
+        local topLeftX = data.spawnX - size
+        local topLeftY = data.spawnY - size
+        local topRightX = data.spawnX + size
+        local topRightY = data.spawnY - size
+        local bottomLeftX = data.spawnX - size
+        local bottomLeftY = data.spawnY + size
+        local bottomRightX = data.spawnX + size
+        local bottomRightY = data.spawnY + size
+        
+        -- Draw 4 boundary lines (yellow)
+        local r, g, b = 1, 1, 0  -- Yellow
+        
+        -- Draw lines with error handling
+        local success, err = pcall(function()
+            -- Top edge
+            SpawnChunk.drawMapLine(symAPI, topLeftX, topLeftY, topRightX, topRightY, r, g, b, scale)
+            -- Right edge
+            SpawnChunk.drawMapLine(symAPI, topRightX, topRightY, bottomRightX, bottomRightY, r, g, b, scale)
+            -- Bottom edge
+            SpawnChunk.drawMapLine(symAPI, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY, r, g, b, scale)
+            -- Left edge
+            SpawnChunk.drawMapLine(symAPI, bottomLeftX, bottomLeftY, topLeftX, topLeftY, r, g, b, scale)
+        end)
+        
+        if not success then
+            print("[" .. username .. "] ERROR drawing map lines: " .. tostring(err))
+            return
+        end
     end
     
     -- Add spawn point marker (small green dot) with error handling
@@ -400,26 +499,48 @@ function SpawnChunkHUD:render()
     
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
-    if data.isComplete then
-        self:drawText("Challenge Complete!", 10, 10, 0, 1, 0, 1, UIFont.Medium)
-        return
-    end
     
     local pl = getPlayer()
     if not pl then return end
     
-    -- Draw progress
-    local progressText = "Kills: " .. data.killCount .. " / " .. data.killTarget
-    self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
+    -- Draw progress based on mode
+    local progressText
+    if data.chunkMode then
+        local currentChunkData = data.chunks and data.chunks[data.currentChunk]
+        if currentChunkData then
+            if currentChunkData.completed then
+                progressText = "Chunk " .. data.currentChunk .. " Complete!"
+                self:drawText(progressText, 10, 10, 0, 1, 0, 1, UIFont.Medium)
+            else
+                progressText = "Chunk " .. data.currentChunk .. " - Kills: " .. currentChunkData.killCount .. " / " .. currentChunkData.killTarget
+                self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
+            end
+            
+            -- Show unlocked chunks count
+            local unlockedCount = #SpawnChunk.getUnlockedChunks()
+            local chunksText = "Unlocked Chunks: " .. unlockedCount
+            self:drawText(chunksText, 10, 35, 0.7, 1, 0.7, 1, UIFont.Small)
+        end
+    else
+        if data.isComplete then
+            self:drawText("Challenge Complete!", 10, 10, 0, 1, 0, 1, UIFont.Medium)
+            return
+        end
+        progressText = "Kills: " .. data.killCount .. " / " .. data.killTarget
+        self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
+    end
     
     -- Draw distance to boundary
+    local yOffset = data.chunkMode and 60 or 35  -- Adjust for extra line in chunk mode
+    
     local dx = math.abs(pl:getX() - data.spawnX)
     local dy = math.abs(pl:getY() - data.spawnY)
     local distToBoundary = data.boundarySize - math.max(dx, dy)
     
+    -- In chunk mode, this is approximate (distance from spawn, not from current chunk center)
     local distText = "Distance to boundary: " .. math.floor(distToBoundary) .. " tiles"
     local color = distToBoundary < 10 and {r=1, g=0, b=0} or {r=1, g=1, b=1}
-    self:drawText(distText, 10, 35, color.r, color.g, color.b, 1, UIFont.Small)
+    self:drawText(distText, 10, yOffset, color.r, color.g, color.b, 1, UIFont.Small)
     
     -- Debug information (only if debug mode is enabled)
     local debugMode = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugMode) or false
@@ -452,7 +573,7 @@ function SpawnChunkHUD:render()
         end
         
         -- Debug info with spawn/sound tracking
-        local yPos = 60
+        local yPos = data.chunkMode and 85 or 60
         self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
         yPos = yPos + 15
         
