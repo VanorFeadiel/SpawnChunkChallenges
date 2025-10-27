@@ -1,5 +1,6 @@
 -- SpawnChunk_Init.lua
 -- Initialize challenge when player spawns
+-- CHARACTER-SPECIFIC INITIALIZATION
 
 SpawnChunk = SpawnChunk or {}
 
@@ -9,11 +10,12 @@ function SpawnChunk.initialize()
     local pl = getPlayer()
     if not pl then return end
     
+    local username = SpawnChunk.getUsername()
     local data = SpawnChunk.getData()
     
     -- Check if already initialized
     if data.isInitialized then
-        print("SpawnChunk: Challenge already initialized")
+        print("[" .. username .. "] Challenge already initialized")
         print("Spawn point: " .. data.spawnX .. ", " .. data.spawnY)
         print("Kills: " .. data.killCount .. " / " .. data.killTarget)
         return
@@ -29,7 +31,6 @@ function SpawnChunk.initialize()
     local zombieList = cell and cell:getZombieList()
     local totalZombies = zombieList and zombieList:size() or 100
     local baseTarget = math.floor(totalZombies / 9)
-    -- if baseTarget < 5 then baseTarget = 5 end -- Minimum 5
     
     -- Scale target based on boundary area (50x50 = 2500 tiles is baseline)
     local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
@@ -55,6 +56,7 @@ function SpawnChunk.initialize()
     data.isInitialized = true
     
     print("=== SPAWN CHUNK CHALLENGE STARTED ===")
+    print("Character: " .. username)
     print("Spawn: " .. x .. ", " .. y .. ", " .. z)
     print("Boundary: " .. data.boundarySize .. " tiles")
     print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
@@ -65,14 +67,18 @@ function SpawnChunk.initialize()
     pl:setHaloNote("Challenge Started! Kill " .. target .. " zombies to escape.", 255, 255, 100, 300)
 end
 
--- Code to Handle Player's Death
+-- Code to Handle Player's Death - CHARACTER SPECIFIC
 Events.OnPlayerDeath.Add(function(playerWhoJustDied)
+    -- Get the dying player's username
+    local username = playerWhoJustDied:getUsername()
+    
     -- Get the dying player's specific data
     local modData = playerWhoJustDied:getModData()
     modData.SpawnChunk = modData.SpawnChunk or {}
-    local data = modData.SpawnChunk
+    modData.SpawnChunk[username] = modData.SpawnChunk[username] or {}
+    local data = modData.SpawnChunk[username]
     
-    -- Reset challenge data
+    -- Reset challenge data for THIS character only
     data.isInitialized = false
     data.killCount = 0
     data.isComplete = false
@@ -90,11 +96,18 @@ Events.OnPlayerDeath.Add(function(playerWhoJustDied)
     data.markersCreated = false
     -- mapSymbolCreated stays true (keep old symbols on map)
     
-    print("SpawnChunk_Init: Challenge reset on death (including stats and boundary outdoor status)")
+    print("[" .. username .. "] Challenge reset on death (including stats and boundary outdoor status)")
     
-    -- Clean up ground markers (but keep map symbols)
-    if SpawnChunk.removeGroundMarkers then
-        SpawnChunk.removeGroundMarkers()
+    -- Clean up THIS character's ground markers (but keep map symbols and other characters' markers)
+    -- We need to access the character-specific marker storage
+    if SpawnChunk.characterMarkers and SpawnChunk.characterMarkers[username] then
+        for _, marker in ipairs(SpawnChunk.characterMarkers[username]) do
+            if marker and marker.remove then
+                marker:remove()
+            end
+        end
+        SpawnChunk.characterMarkers[username] = {}
+        print("[" .. username .. "] Removed ground markers on death")
     end
 end)
 

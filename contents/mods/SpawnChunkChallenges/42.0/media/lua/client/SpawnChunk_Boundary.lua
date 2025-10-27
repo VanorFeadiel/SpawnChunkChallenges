@@ -1,6 +1,6 @@
 -- SpawnChunk_Boundary.lua
 -- Check if player is within boundary and teleport if outside
--- Adding comment to have a change in file and test workshop update
+-- CHARACTER-SPECIFIC via getData()
 
 SpawnChunk = SpawnChunk or {}
 
@@ -34,7 +34,8 @@ function SpawnChunk.doTeleport(pl, x, y, z)
     pl:setZ(z)
     pl:setLastZ(z)
     
-    print(string.format("Teleported to: %d %d %d", math.floor(x), math.floor(y), math.floor(z)))
+    local username = SpawnChunk.getUsername()
+    print(string.format("[%s] Teleported to: %d %d %d", username, math.floor(x), math.floor(y), math.floor(z)))
     return true
 end
 
@@ -45,6 +46,8 @@ function SpawnChunk.teleportToSpawn()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
     
+    local username = SpawnChunk.getUsername()
+    
     -- Store current position for debugging
     local oldX, oldY, oldZ = pl:getX(), pl:getY(), pl:getZ()
     
@@ -52,13 +55,13 @@ function SpawnChunk.teleportToSpawn()
     local dx = math.abs(oldX - data.spawnX)
     local dy = math.abs(oldY - data.spawnY)
     if dx <= 3 and dy <= 3 then
-        print(string.format("Player already near spawn (%d,%d), skipping teleportation", oldX, oldY))
+        print(string.format("[%s] Player already near spawn (%d,%d), skipping teleportation", username, oldX, oldY))
         return
     end
     
     -- Simple teleportation (following RV mod pattern)
-    print(string.format("Teleporting from (%d,%d,%d) to spawn (%d,%d,%d)", 
-        oldX, oldY, oldZ, data.spawnX, data.spawnY, data.spawnZ))
+    print(string.format("[%s] Teleporting from (%d,%d,%d) to spawn (%d,%d,%d)", 
+        username, oldX, oldY, oldZ, data.spawnX, data.spawnY, data.spawnZ))
     
     SpawnChunk.doTeleport(pl, data.spawnX, data.spawnY, data.spawnZ)
     
@@ -66,10 +69,15 @@ function SpawnChunk.teleportToSpawn()
     pl:playSound("WallHit")
     pl:setHaloNote("You cannot leave until the challenge is complete!", 255, 50, 50, 200)
     
-    -- Recreate visual markers using the same method as initial creation
-    -- Remove existing markers
-    if SpawnChunk.removeGroundMarkers then
-        SpawnChunk.removeGroundMarkers()
+    -- Recreate THIS character's visual markers
+    -- Remove existing markers for this character
+    if SpawnChunk.characterMarkers and SpawnChunk.characterMarkers[username] then
+        for _, marker in ipairs(SpawnChunk.characterMarkers[username]) do
+            if marker and marker.remove then
+                marker:remove()
+            end
+        end
+        SpawnChunk.characterMarkers[username] = {}
     end
     
     -- Reset the flag so markers can be recreated
@@ -82,14 +90,14 @@ function SpawnChunk.teleportToSpawn()
         if timer >= 5 then -- ~0.15 second delay (much faster)
             if SpawnChunk.createGroundMarkers then
                 SpawnChunk.createGroundMarkers()
-                print("SpawnChunk_Boundary: Recreated ground markers after teleportation")
+                print("[" .. username .. "] Recreated ground markers after teleportation")
             end
             Events.OnTick.Remove(recreateMarkersDelayed)
         end
     end
     Events.OnTick.Add(recreateMarkersDelayed)
     
-    print("Teleportation completed")
+    print("[" .. username .. "] Teleportation completed")
 end
 
 -----------------------  BOUNDARY ENFORCEMENT  ---------------------------

@@ -1,7 +1,30 @@
--- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES)
+-- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES - CHARACTER SPECIFIC)
 -- Ground markers, map boundary lines, and HUD
+-- Each character maintains their own visual elements
 
 SpawnChunk = SpawnChunk or {}
+
+-- Character-specific marker storage
+SpawnChunk.characterMarkers = SpawnChunk.characterMarkers or {}
+SpawnChunk.characterMapSymbols = SpawnChunk.characterMapSymbols or {}
+
+-----------------------  CHARACTER-SPECIFIC VISUAL TRACKING  ---------------------------
+
+function SpawnChunk.getMarkerStorage()
+    local username = SpawnChunk.getUsername()
+    if not username then return {} end
+    
+    SpawnChunk.characterMarkers[username] = SpawnChunk.characterMarkers[username] or {}
+    return SpawnChunk.characterMarkers[username]
+end
+
+function SpawnChunk.getMapSymbolStorage()
+    local username = SpawnChunk.getUsername()
+    if not username then return {} end
+    
+    SpawnChunk.characterMapSymbols[username] = SpawnChunk.characterMapSymbols[username] or {}
+    return SpawnChunk.characterMapSymbols[username]
+end
 
 -----------------------  GROUND BOUNDARY MARKERS  ---------------------------
 
@@ -39,19 +62,20 @@ function SpawnChunk.createGroundMarkers()
     local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
     if not showMarkers then return end
     
-    -- Remove old markers first
+    -- Remove old markers for this character first
     SpawnChunk.removeGroundMarkers()
     
-    print("Creating boundary markers...")
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Creating boundary markers...")
     
     local edgeSquares = SpawnChunk.getBoundaryEdgeSquares()
     local wm = getWorldMarkers()
     if not wm then 
-        print("ERROR: WorldMarkers not available")
+        print("[" .. username .. "] ERROR: WorldMarkers not available")
         return 
     end
     
-    SpawnChunk.boundaryMarkers = {}
+    local markerStorage = SpawnChunk.getMarkerStorage()
     
     -- Color: Yellow for active challenge
     local r, g, b = 1, 1, 0
@@ -62,7 +86,7 @@ function SpawnChunk.createGroundMarkers()
         if sq then
             local marker = wm:addGridSquareMarker(nil, "X", sq, r, g, b, true, 0.3)
             if marker then
-                table.insert(SpawnChunk.boundaryMarkers, marker)
+                table.insert(markerStorage, marker)
             end
         end
     end
@@ -72,22 +96,26 @@ function SpawnChunk.createGroundMarkers()
     if spawnSq then
         local spawnMarker = wm:addGridSquareMarker(nil, "SPAWN", spawnSq, 0, 1, 0, true, 1)
         if spawnMarker then
-            table.insert(SpawnChunk.boundaryMarkers, spawnMarker)
+            table.insert(markerStorage, spawnMarker)
         end
     end
     
-    print("Created " .. #SpawnChunk.boundaryMarkers .. " boundary markers")
+    print("[" .. username .. "] Created " .. #markerStorage .. " boundary markers")
     data.markersCreated = true
 end
 
 function SpawnChunk.removeGroundMarkers()
-    if SpawnChunk.boundaryMarkers then
-        for _, marker in ipairs(SpawnChunk.boundaryMarkers) do
+    local username = SpawnChunk.getUsername()
+    local markerStorage = SpawnChunk.getMarkerStorage()
+    
+    if markerStorage then
+        for _, marker in ipairs(markerStorage) do
             if marker and marker.remove then
                 marker:remove()
             end
         end
-        SpawnChunk.boundaryMarkers = {}
+        -- Clear the storage
+        SpawnChunk.characterMarkers[username] = {}
     end
 end
 
@@ -117,7 +145,8 @@ Events.OnCreatePlayer.Add(function(playerIndex, player)
             local data = SpawnChunk.getData()
             if data.isInitialized and not data.markersCreated then
                 SpawnChunk.createGroundMarkers()
-                print("SpawnChunk_Visual: Recreated ground markers after respawn")
+                local username = SpawnChunk.getUsername()
+                print("[" .. username .. "] Recreated ground markers after respawn")
             end
             Events.OnTick.Remove(checkRespawnInit)
         end
@@ -130,8 +159,9 @@ local oldOnVictory = SpawnChunk.onVictory
 function SpawnChunk.onVictory()
     if oldOnVictory then oldOnVictory() end
     SpawnChunk.removeGroundMarkers()
-    SpawnChunk.removeMapSymbol()  -- FIX: Also remove map boundary lines
-    print("SpawnChunk_Visual: Cleaned up all visual markers on victory")
+    SpawnChunk.removeMapSymbol()
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Cleaned up all visual markers on victory")
 end
 
 -----------------------  MAP SYMBOLS & BOUNDARY LINES  ---------------------------
@@ -149,10 +179,8 @@ function SpawnChunk.drawMapLine(symbolsAPI, startX, startY, endX, endY, r, g, b,
     local stepX = dx / steps
     local stepY = dy / steps
     
-    -- Initialize storage for our symbols if needed
-    if not SpawnChunk.mapLineSymbols then
-        SpawnChunk.mapLineSymbols = {}
-    end
+    -- Get storage for this character
+    local symbolStorage = SpawnChunk.getMapSymbolStorage()
     
     -- Draw line by placing many small symbols
     for i = 0, steps do
@@ -166,7 +194,7 @@ function SpawnChunk.drawMapLine(symbolsAPI, startX, startY, endX, endY, r, g, b,
             sym:setAnchor(0.5, 0.5)
             sym:setScale(scale)
             -- Store reference to our symbol
-            table.insert(SpawnChunk.mapLineSymbols, sym)
+            table.insert(symbolStorage, sym)
         end
     end
 end
@@ -175,40 +203,54 @@ function SpawnChunk.addMapSymbol()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
     
+    local username = SpawnChunk.getUsername()
+    
     -- Check if map symbols are enabled in sandbox options
     local showSymbols = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowMapSymbols) ~= false
     if not showSymbols then return end
     
-    -- Open and close map to initialize ISWorldMap_instance
+    -- Try to initialize map if not ready
     if not ISWorldMap_instance then
-        ISWorldMap.ShowWorldMap(0)
-        ISWorldMap_instance:close()
+        -- Map not initialized yet, try opening it
+        local success, err = pcall(function()
+            ISWorldMap.ShowWorldMap(0)
+            if ISWorldMap_instance then
+                ISWorldMap_instance:close()
+            end
+        end)
+        if not success then
+            print("[" .. username .. "] Map not ready yet, will retry later")
+            return
+        end
     end
     
+    -- Verify ISWorldMap_instance exists and has javaObject
     if not ISWorldMap_instance or not ISWorldMap_instance.javaObject then 
-        print("ERROR: ISWorldMap not available")
+        print("[" .. username .. "] ISWorldMap not ready, skipping map symbols")
         return 
     end
     
+    -- Get map API with error checking
     local mapAPI = ISWorldMap_instance.javaObject:getAPIv1()
     if not mapAPI then 
-        print("ERROR: Map API not available")
+        print("[" .. username .. "] Map API not available, skipping map symbols")
         return 
     end
     
+    -- Get symbols API with error checking
     local symAPI = mapAPI:getSymbolsAPI()
     if not symAPI then 
-        print("ERROR: Symbol API not available")
+        print("[" .. username .. "] Symbol API not available, skipping map symbols")
         return 
     end
     
-    -- Remove old symbols if exists
+    -- Remove old symbols for this character if they exist
     SpawnChunk.removeMapSymbol()
     
-    -- Initialize storage for our map symbols
-    SpawnChunk.mapLineSymbols = {}
+    -- Initialize storage for this character's map symbols
+    SpawnChunk.characterMapSymbols[username] = {}
     
-    print("Drawing boundary lines on map...")
+    print("[" .. username .. "] Drawing boundary lines on map...")
     
     -- Calculate boundary corners
     local size = data.boundarySize
@@ -225,31 +267,48 @@ function SpawnChunk.addMapSymbol()
     local scale = 0.15  -- Small scale for thin lines
     local r, g, b = 1, 1, 0  -- Yellow
     
-    -- Top edge
-    SpawnChunk.drawMapLine(symAPI, topLeftX, topLeftY, topRightX, topRightY, r, g, b, scale)
-    -- Right edge
-    SpawnChunk.drawMapLine(symAPI, topRightX, topRightY, bottomRightX, bottomRightY, r, g, b, scale)
-    -- Bottom edge
-    SpawnChunk.drawMapLine(symAPI, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY, r, g, b, scale)
-    -- Left edge
-    SpawnChunk.drawMapLine(symAPI, bottomLeftX, bottomLeftY, topLeftX, topLeftY, r, g, b, scale)
+    -- Draw lines with error handling
+    local success, err = pcall(function()
+        -- Top edge
+        SpawnChunk.drawMapLine(symAPI, topLeftX, topLeftY, topRightX, topRightY, r, g, b, scale)
+        -- Right edge
+        SpawnChunk.drawMapLine(symAPI, topRightX, topRightY, bottomRightX, bottomRightY, r, g, b, scale)
+        -- Bottom edge
+        SpawnChunk.drawMapLine(symAPI, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY, r, g, b, scale)
+        -- Left edge
+        SpawnChunk.drawMapLine(symAPI, bottomLeftX, bottomLeftY, topLeftX, topLeftY, r, g, b, scale)
+    end)
     
-    -- Add spawn point marker (small green dot)
-    local spawnSym = symAPI:addTexture("media/ui/Moodle_Icon_Windchill.png", data.spawnX, data.spawnY)
-    if spawnSym then
-        spawnSym:setAnchor(0.5, 0.5)
-        spawnSym:setRGBA(0, 1, 0, 1)  -- Green
-        spawnSym:setScale(0.15)  -- Much smaller than before
-        SpawnChunk.mapSymbol = spawnSym
-        -- Also store in our tracked symbols list
-        table.insert(SpawnChunk.mapLineSymbols, spawnSym)
-        print("Map symbols added - boundary rectangle and spawn point")
+    if not success then
+        print("[" .. username .. "] ERROR drawing map lines: " .. tostring(err))
+        return
+    end
+    
+    -- Add spawn point marker (small green dot) with error handling
+    success, err = pcall(function()
+        local spawnSym = symAPI:addTexture("media/ui/Moodle_Icon_Windchill.png", data.spawnX, data.spawnY)
+        if spawnSym then
+            spawnSym:setAnchor(0.5, 0.5)
+            spawnSym:setRGBA(0, 1, 0, 1)  -- Green
+            spawnSym:setScale(0.15)
+            
+            local symbolStorage = SpawnChunk.getMapSymbolStorage()
+            table.insert(symbolStorage, spawnSym)
+            print("[" .. username .. "] Map symbols added - boundary rectangle and spawn point")
+        else
+            print("[" .. username .. "] WARNING: Failed to create spawn point symbol")
+        end
+    end)
+    
+    if not success then
+        print("[" .. username .. "] ERROR adding spawn marker: " .. tostring(err))
     end
 end
 
 function SpawnChunk.removeMapSymbol()
     if not ISWorldMap_instance then return end
     
+    local username = SpawnChunk.getUsername()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
     
@@ -259,10 +318,11 @@ function SpawnChunk.removeMapSymbol()
     local symAPI = mapAPI:getSymbolsAPI()
     if not symAPI then return end
     
-    -- Only remove symbols we created (stored in our list)
-    if SpawnChunk.mapLineSymbols then
+    -- Only remove symbols we created for this character
+    local symbolStorage = SpawnChunk.getMapSymbolStorage()
+    if symbolStorage then
         local removedCount = 0
-        for _, sym in ipairs(SpawnChunk.mapLineSymbols) do
+        for _, sym in ipairs(symbolStorage) do
             if sym then
                 -- Find and remove this specific symbol
                 for i = symAPI:getSymbolCount() - 1, 0, -1 do
@@ -274,8 +334,8 @@ function SpawnChunk.removeMapSymbol()
                 end
             end
         end
-        SpawnChunk.mapLineSymbols = {}
-        print("SpawnChunk_Visual: Removed " .. removedCount .. " map symbols (player symbols preserved)")
+        SpawnChunk.characterMapSymbols[username] = {}
+        print("[" .. username .. "] Removed " .. removedCount .. " map symbols (other characters' symbols preserved)")
     end
 end
 
@@ -284,7 +344,7 @@ Events.OnGameStart.Add(function()
     local timer = 0
     local function checkInit()
         timer = timer + 1
-        if timer >= 180 then -- ~3 seconds (allow time for map init)
+        if timer >= 300 then -- ~5 seconds (more time for map init)
             local data = SpawnChunk.getData()
             if data.isInitialized and not data.mapSymbolCreated then
                 SpawnChunk.addMapSymbol()
@@ -298,16 +358,17 @@ end)
 
 -- Also recreate map symbols after respawn (not just on game start)
 Events.OnCreatePlayer.Add(function(playerIndex, player)
-    -- Wait a bit longer after respawn to ensure map is ready
+    -- Wait longer after respawn to ensure map is ready
     local timer = 0
     local function checkRespawnInit()
         timer = timer + 1
-        if timer >= 240 then -- ~4 seconds (more time after respawn)
+        if timer >= 360 then -- ~6 seconds (even more time after respawn)
             local data = SpawnChunk.getData()
             if data.isInitialized and not data.mapSymbolCreated then
                 SpawnChunk.addMapSymbol()
                 data.mapSymbolCreated = true
-                print("SpawnChunk_Visual: Recreated map symbols after respawn")
+                local username = SpawnChunk.getUsername()
+                print("[" .. username .. "] Recreated map symbols after respawn")
             end
             Events.OnTick.Remove(checkRespawnInit)
         end
@@ -361,19 +422,31 @@ function SpawnChunkHUD:render()
     self:drawText(distText, 10, 35, color.r, color.g, color.b, 1, UIFont.Small)
     
     -- Debug information (only if debug mode is enabled)
--- Inside SpawnChunkHUD:render() function, replace the debug section with this:
-
-    -- Debug information (only if debug mode is enabled)
     local debugMode = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugMode) or false
     if debugMode then
         -- Count zombies in loaded cells
         local nearbyZeds = getCell():getZombieList()
         local zombieCount = 0
+        local closestZombie = nil
+        local closestDistance = 999999
+        
         if nearbyZeds then
             for i = 0, nearbyZeds:size() - 1 do
                 local z = nearbyZeds:get(i)
                 if z and not z:isDead() then
                     zombieCount = zombieCount + 1
+                    
+                    -- Calculate distance to this zombie from spawn point
+                    local zx = z:getX()
+                    local zy = z:getY()
+                    local dx = math.abs(zx - data.spawnX)
+                    local dy = math.abs(zy - data.spawnY)
+                    local distance = math.sqrt(dx * dx + dy * dy)
+                    
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestZombie = z
+                    end
                 end
             end
         end
@@ -385,6 +458,34 @@ function SpawnChunkHUD:render()
         
         self:drawText("Zombie Population: " .. zombieCount, 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
+        
+        -- Show closest zombie distance
+        if closestZombie then
+            local distText = string.format("Closest Zombie: %.1f tiles", closestDistance)
+            -- Color code based on distance
+            local r, g, b = 1, 1, 1  -- White default
+            if closestDistance < data.boundarySize then
+                r, g, b = 0, 1, 0  -- Green - inside boundary
+            elseif closestDistance < data.boundarySize + 50 then
+                r, g, b = 1, 1, 0  -- Yellow - nearby
+            else
+                r, g, b = 1, 0.5, 0  -- Orange - far away
+            end
+            self:drawText(distText, 10, yPos, r, g, b, 1, UIFont.Small)
+            yPos = yPos + 15
+            
+            -- Show if zombie is approaching
+            if data.lastClosestZombieDistance then
+                local isApproaching = closestDistance < data.lastClosestZombieDistance
+                local approachText = isApproaching and "APPROACHING" or "NOT APPROACHING"
+                local ar, ag, ab = isApproaching and 0 or 1, isApproaching and 1 or 0.5, 0
+                self:drawText("Status: " .. approachText, 10, yPos, ar, ag, ab, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+        else
+            self:drawText("Closest Zombie: N/A", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)
+            yPos = yPos + 15
+        end
         
         self:drawText("Boundary Size: " .. data.boundarySize .. " tiles", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
@@ -410,6 +511,13 @@ function SpawnChunkHUD:render()
         local maxRadius = data.maxSoundRadius or 0
         self:drawText("Max Sound Radius: " .. maxRadius .. " tiles", 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
         yPos = yPos + 15
+        
+        -- Show current sound wave reach (if waves have been emitted)
+        if totalWaves > 0 then
+            local currentReach = data.currentSoundRadius or 0
+            self:drawText("Current Sound Reach: " .. currentReach .. " tiles", 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+            yPos = yPos + 15
+        end
         
         -- Show if debug close spawn is active
         local debugCloseSpawn = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugCloseSpawn) or false
@@ -490,21 +598,3 @@ Events.OnGameStart.Add(function()
     renderer:initialise()
     renderer:addToUIManager()
 end)
-
------------------------  DEATH RESET HANDLER  ---------------------------
-
--- Clean up visual markers on player death so they can be recreated at new spawn
---Events.OnPlayerDeath.Add(function(player)
---    print("SpawnChunk_Visual: Player died, cleaning up visual markers")
---    
---    -- Remove ground markers
---    SpawnChunk.removeGroundMarkers()
---    
---    -- DO NOT remove map symbols on death - only on victory
---    -- Map symbols will persist and be useful for navigation
---    
---    -- Reset creation flags so visuals will be recreated at new spawn
---    local data = SpawnChunk.getData()
---    data.markersCreated = false
---    -- Keep mapSymbolCreated as true so map isn't recreated
---end)

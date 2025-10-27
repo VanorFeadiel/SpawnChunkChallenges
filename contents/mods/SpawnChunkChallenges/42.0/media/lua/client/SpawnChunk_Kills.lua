@@ -1,5 +1,6 @@
 -- SpawnChunk_Kills.lua
 -- Track zombie kills and check for victory
+-- CHARACTER-SPECIFIC via getData()
 
 SpawnChunk = SpawnChunk or {}
 
@@ -16,7 +17,8 @@ function SpawnChunk.onZombieDead(zombie)
     -- Increment kill counter
     data.killCount = data.killCount + 1
     
-    print("Kill " .. data.killCount .. " / " .. data.killTarget)
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Kill " .. data.killCount .. " / " .. data.killTarget)
     
     -- Show progress notification every 5 kills
     if data.killCount % 5 == 0 then
@@ -41,7 +43,8 @@ function SpawnChunk.onVictory()
     local data = SpawnChunk.getData()
     if data.isComplete then return end -- Already won
     
-    print("=== VICTORY! ===")
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] === VICTORY! ===")
     
     -- Mark as complete
     data.isComplete = true
@@ -58,7 +61,7 @@ function SpawnChunk.onVictory()
     if item then
         item:setName("Purge Completion Certificate")
         -- Note: Custom items would require items.txt definition
-        print("Victory item awarded")
+        print("[" .. username .. "] Victory item awarded")
     end
     
     -- Optional: Give reward items
@@ -66,7 +69,7 @@ function SpawnChunk.onVictory()
     inv:AddItem("Base.Antibiotics")
     inv:AddItem("Base.WaterBottleFull")
     
-    print("You can now leave the spawn area!")
+    print("[" .. username .. "] You can now leave the spawn area!")
 end
 
 -----------------------  UI DISPLAY  ---------------------------
