@@ -59,11 +59,13 @@ function SpawnChunk.checkChunkEntry()
             print("[" .. username .. "] Locked " .. lockedCount .. " alternative direction(s) - path committed to " .. playerChunkKey)
         end
         
-        -- Set spawn delay for new chunk
-        local spawnDelay = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.NewChunkSpawnDelay) or 30
+        -- Set spawn delay for new chunk (in-game minutes)
+        local spawnDelay = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.NewChunkSpawnDelay) or 60
         if spawnDelay > 0 then
-            data.spawnDelayUntil = os.time() + (spawnDelay * 60)  -- Convert minutes to seconds
-            print(string.format("[%s] Spawn system delayed for %d minutes to allow exploration", username, spawnDelay))
+            local gameTime = getGameTime()
+            local currentMinutes = gameTime:getWorldAgeHours() * 60  -- Convert hours to minutes
+            data.spawnDelayUntil = currentMinutes + spawnDelay  -- Target in-game minutes
+            print(string.format("[%s] Spawn system delayed for %d in-game minutes to allow exploration", username, spawnDelay))
         end
         
         -- Reset sound system for new chunk

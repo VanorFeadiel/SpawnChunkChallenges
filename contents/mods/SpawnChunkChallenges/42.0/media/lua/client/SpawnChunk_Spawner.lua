@@ -235,14 +235,29 @@ function SpawnChunk.ensureMinimumZombies()
 
     local username = SpawnChunk.getUsername()
     
-    -- Check if spawn delay is active (for new chunks)
-    if data.spawnDelayUntil and os.time() < data.spawnDelayUntil then
-        -- Still in delay period, don't spawn/attract
-        return
-    elseif data.spawnDelayUntil and os.time() >= data.spawnDelayUntil then
-        -- Delay period ended
-        data.spawnDelayUntil = nil
-        print("[" .. username .. "] Spawn delay ended, spawning system now active")
+    -- CHUNK MODE: Check if current chunk is completed
+    if data.chunkMode and data.currentChunk then
+        local currentChunkData = SpawnChunk.getChunkData(data.currentChunk)
+        if currentChunkData and currentChunkData.completed then
+            -- Current chunk is completed, stop spawning until player enters new chunk
+            print("[" .. username .. "] Current chunk completed, spawning paused until new chunk entered")
+            return
+        end
+    end
+    
+    -- Check if spawn delay is active (for new chunks) - using in-game time
+    if data.spawnDelayUntil then
+        local gameTime = getGameTime()
+        local currentMinutes = gameTime:getWorldAgeHours() * 60  -- Convert hours to minutes
+        
+        if currentMinutes < data.spawnDelayUntil then
+            -- Still in delay period, don't spawn/attract
+            return
+        else
+            -- Delay period ended
+            data.spawnDelayUntil = nil
+            print("[" .. username .. "] Spawn delay ended (in-game time), spawning system now active")
+        end
     end
 
     -- Initialize debug tracking if not present
@@ -481,13 +496,21 @@ function SpawnChunk.ensureMinimumZombies()
             local spawnDirection = SpawnChunk.getNextSpawnDirection(data)
             data.lastSpawnDirection = spawnDirection
             
-            -- Track this stuck zombie by direction
+            -- Track this stuck zombie by direction with exact position
+            local stuckX, stuckY = nil, nil
+            if closestZombie then
+                stuckX = math.floor(closestZombie:getX())
+                stuckY = math.floor(closestZombie:getY())
+            end
+            
             data.stuckZombiesByDirection[spawnDirection] = {
                 zombie = closestZombie,
                 isStuck = true,
                 targetName = data.attackTargetName or "Unknown",
                 targetOpaque = data.attackTargetOpaque or false,
-                timestamp = os.time()
+                timestamp = os.time(),
+                stuckX = stuckX,  -- NEW: Track exact position
+                stuckY = stuckY   -- NEW: Track exact position
             }
             
             -- If zombie is stuck on OPAQUE object, despawn it first
@@ -699,8 +722,46 @@ function SpawnChunk.spawnZombies(count, data, pl, preferredDirection)
         elseif preferredDirection then
             -- DIRECTIONAL SPAWN: Spawn in specific cardinal direction
             local spawnOffset = (size <= 20) and (size + ZombRand(5, 11)) or (size + 20)
-            local spread = ZombRand(-size, size + 1)
             
+            -- SMART SPREAD: Avoid previous stuck positions in this direction
+            local spread = 0
+            local stuckInfo = data.stuckZombiesByDirection[direction]
+            
+            if stuckInfo and stuckInfo.stuckX and stuckInfo.stuckY then
+                -- Calculate where previous zombie got stuck relative to spawn center
+                local stuckOffsetX = stuckInfo.stuckX - spawnX
+                local stuckOffsetY = stuckInfo.stuckY - spawnY
+                
+                -- Spawn on OPPOSITE side of the edge
+                if direction == "north" or direction == "south" then
+                    -- North/South: spread is X-axis
+                    if stuckOffsetX > 0 then
+                        -- Stuck on right side, spawn on left
+                        spread = ZombRand(-size, -size/2)
+                        print(string.format("[%s] Previous stuck on RIGHT, spawning LEFT (spread: %d)", username, spread))
+                    else
+                        -- Stuck on left side, spawn on right
+                        spread = ZombRand(size/2, size + 1)
+                        print(string.format("[%s] Previous stuck on LEFT, spawning RIGHT (spread: %d)", username, spread))
+                    end
+                else
+                    -- East/West: spread is Y-axis
+                    if stuckOffsetY > 0 then
+                        -- Stuck on bottom side, spawn on top
+                        spread = ZombRand(-size, -size/2)
+                        print(string.format("[%s] Previous stuck on BOTTOM, spawning TOP (spread: %d)", username, spread))
+                    else
+                        -- Stuck on top side, spawn on bottom
+                        spread = ZombRand(size/2, size + 1)
+                        print(string.format("[%s] Previous stuck on TOP, spawning BOTTOM (spread: %d)", username, spread))
+                    end
+                end
+            else
+                -- No previous stuck position, use full random spread
+                spread = ZombRand(-size, size + 1)
+            end
+            
+            -- Calculate spawn coordinates based on direction
             if direction == "north" then
                 x = spawnX + spread
                 y = spawnY - spawnOffset
@@ -715,7 +776,8 @@ function SpawnChunk.spawnZombies(count, data, pl, preferredDirection)
                 y = spawnY + spread
             end
             
-            print(string.format("[%s] Directional spawn: %s at offset %d", username, direction, spawnOffset))
+            print(string.format("[%s] Directional spawn: %s at offset %d, spread %d (position: %d, %d)", 
+                username, direction, spawnOffset, spread, x or 0, y or 0))
         elseif size <= 20 then
             -- Small boundary: spawn just outside (size + 5 to size + 10)
             local spawnOffset = size + ZombRand(5, 11)

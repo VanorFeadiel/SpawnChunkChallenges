@@ -5,7 +5,7 @@
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.1.020"
+SpawnChunk.MOD_VERSION = "0.3.1.024"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 

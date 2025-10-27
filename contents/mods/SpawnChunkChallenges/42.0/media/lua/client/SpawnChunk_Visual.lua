@@ -550,6 +550,9 @@ function SpawnChunkHUD:render()
     
     -- Draw progress based on mode
     local progressText
+    local statusLine = 30  -- Line for status messages
+    local chunkCompleted = false
+    
     if data.chunkMode then
         -- Detect which chunk player is currently standing in
         local playerX = math.floor(pl:getX())
@@ -562,6 +565,7 @@ function SpawnChunkHUD:render()
             if playerChunkData.completed then
                 progressText = "Chunk " .. playerChunkKey .. " Complete!"
                 self:drawText(progressText, 10, 10, 0, 1, 0, 1, UIFont.Medium)
+                chunkCompleted = true
             else
                 progressText = "Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget
                 self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
@@ -572,10 +576,33 @@ function SpawnChunkHUD:render()
             self:drawText(progressText, 10, 10, 1, 0.5, 0.5, 1, UIFont.Medium)
         end
         
+        -- Show spawn delay status or paused status
+        local spawnDelayActive = false
+        local remainingMinutes = 0
+        
+        if data.spawnDelayUntil then
+            local gameTime = getGameTime()
+            local currentMinutes = gameTime:getWorldAgeHours() * 60
+            spawnDelayActive = currentMinutes < data.spawnDelayUntil
+            if spawnDelayActive then
+                remainingMinutes = math.ceil(data.spawnDelayUntil - currentMinutes)
+            end
+        end
+        
+        if chunkCompleted then
+            -- Show spawning paused message
+            self:drawText("⏸ Spawning PAUSED - Enter new chunk to continue", 10, statusLine, 1, 1, 0, 1, UIFont.Small)
+            statusLine = statusLine + 20
+        elseif spawnDelayActive then
+            local delayText = string.format("⏳ Spawn Delay: %d in-game min remaining", remainingMinutes)
+            self:drawText(delayText, 10, statusLine, 0.5, 1, 1, 1, UIFont.Small)
+            statusLine = statusLine + 20
+        end
+        
         -- Show unlocked chunks count
         local unlockedCount = #SpawnChunk.getUnlockedChunks()
         local chunksText = "Unlocked Chunks: " .. unlockedCount
-        self:drawText(chunksText, 10, 35, 0.7, 1, 0.7, 1, UIFont.Small)
+        self:drawText(chunksText, 10, statusLine + 5, 0.7, 1, 0.7, 1, UIFont.Small)
     else
         if data.isComplete then
             self:drawText("Challenge Complete!", 10, 10, 0, 1, 0, 1, UIFont.Medium)
@@ -586,7 +613,20 @@ function SpawnChunkHUD:render()
     end
     
     -- Draw distance to boundary
+    -- Note: spawnDelayActive and chunkCompleted already calculated above
     local yOffset = data.chunkMode and 60 or 35  -- Adjust for extra line in chunk mode
+    
+    -- Check if we need extra space (recalculate for non-chunk mode)
+    local needsExtraSpace = chunkCompleted
+    if not data.chunkMode and data.spawnDelayUntil then
+        local gameTime = getGameTime()
+        local currentMinutes = gameTime:getWorldAgeHours() * 60
+        needsExtraSpace = currentMinutes < data.spawnDelayUntil
+    end
+    
+    if needsExtraSpace then
+        yOffset = yOffset + 20  -- Extra space for status messages
+    end
     
     local dx = math.abs(pl:getX() - data.spawnX)
     local dy = math.abs(pl:getY() - data.spawnY)
@@ -863,15 +903,23 @@ function SpawnChunkHUD:render()
             self:drawText(stuckText, 10, yPos, sr, sg, sb, 1, UIFont.Small)
             yPos = yPos + 15
             
-            -- List stuck directions
+            -- List stuck directions with position info
             for _, dir in ipairs(stuckDirections) do
                 local dirInfo = data.stuckZombiesByDirection[dir]
+                local statusText = dirInfo.targetOpaque and "(Opaque-Despawned)" or "(Transparent-Active)"
                 local dirText = string.format("  %s: %s %s", 
                     dir:upper(), 
                     dirInfo.targetName or "Unknown",
-                    dirInfo.targetOpaque and "(Opaque-Despawned)" or "(Transparent-Active)")
+                    statusText)
                 self:drawText(dirText, 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)
                 yPos = yPos + 15
+                
+                -- Show stuck position if available
+                if dirInfo.stuckX and dirInfo.stuckY then
+                    local posText = string.format("    Stuck at: (%d, %d)", dirInfo.stuckX, dirInfo.stuckY)
+                    self:drawText(posText, 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)
+                    yPos = yPos + 15
+                end
             end
             
             -- Show next spawn direction
