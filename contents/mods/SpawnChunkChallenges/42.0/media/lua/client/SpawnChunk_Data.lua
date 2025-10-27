@@ -4,6 +4,9 @@
 
 SpawnChunk = SpawnChunk or {}
 
+-- MOD VERSION (update this when mod.info changes)
+SpawnChunk.MOD_VERSION = "0.3.1.020"
+
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 
 -- Get the current player's username for data namespacing
@@ -51,6 +54,11 @@ function SpawnChunk.getData()
         totalSpawned = 0,        -- Total zombies spawned this life
         totalSoundWaves = 0,     -- Total sound waves emitted this life
         maxSoundRadius = 0,      -- Maximum sound radius used this life
+        
+        -- Stuck zombie tracking (NEW)
+        stuckZombiesByDirection = {},  -- Track stuck zombies per cardinal direction
+        lastSpawnDirection = nil,       -- Last direction used for spawning
+        challengeStuckFlag = false,     -- True if all 4 directions have stuck zombies
     }
     
     return modData.SpawnChunk[username]
@@ -104,15 +112,13 @@ function SpawnChunk.getChunkKeyFromPosition(worldX, worldY, data)
     local chunkSize = (boundarySize * 2) + 1  -- Full chunk size including both edges
     
     -- Calculate which chunk this position falls into
-    local offsetX = worldX - spawnX
-    local offsetY = worldY - spawnY
+    -- Offset by (boundarySize + 0.5) to center the calculation on chunk boundaries
+    local offsetX = worldX - spawnX + boundarySize + 0.5
+    local offsetY = worldY - spawnY + boundarySize + 0.5
     
+    -- Divide by chunk size and floor to get chunk coordinates
     local chunkX = math.floor(offsetX / chunkSize)
     local chunkY = math.floor(offsetY / chunkSize)
-    
-    -- Adjust for negative coordinates
-    if offsetX < 0 and offsetX % chunkSize ~= 0 then chunkX = chunkX - 1 end
-    if offsetY < 0 and offsetY % chunkSize ~= 0 then chunkY = chunkY - 1 end
     
     return SpawnChunk.getChunkKey(chunkX, chunkY)
 end
@@ -163,6 +169,7 @@ function SpawnChunk.initChunk(chunkKey, unlocked, completed)
         data.chunks[chunkKey] = {
             unlocked = unlocked or false,
             completed = completed or false,
+            available = false,  -- New state: can be unlocked by entering
             killCount = 0,
             killTarget = 10,  -- Will be recalculated on unlock
         }
@@ -178,9 +185,20 @@ function SpawnChunk.getChunkData(chunkKey)
     return data.chunks[chunkKey]
 end
 
+-- Mark a chunk as available (can be unlocked by entering)
+function SpawnChunk.makeChunkAvailable(chunkKey)
+    local chunkData = SpawnChunk.initChunk(chunkKey, false, false)
+    chunkData.available = true
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Chunk available: " .. chunkKey)
+    return chunkData
+end
+
 -- Unlock a chunk (and initialize if needed)
 function SpawnChunk.unlockChunk(chunkKey)
     local chunkData = SpawnChunk.initChunk(chunkKey, true, false)
+    chunkData.unlocked = true
+    chunkData.available = false  -- No longer just available, now unlocked
     local username = SpawnChunk.getUsername()
     print("[" .. username .. "] Unlocked chunk: " .. chunkKey)
     return chunkData

@@ -87,3 +87,13 @@ option SpawnChunkChallenge.ChunkUnlockPattern
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_ChunkUnlockPattern,
 }
+
+option SpawnChunkChallenge.NewChunkSpawnDelay
+{
+    type = integer,
+    min = 0,
+    max = 1440,
+    default = 30,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_NewChunkSpawnDelay,
+}

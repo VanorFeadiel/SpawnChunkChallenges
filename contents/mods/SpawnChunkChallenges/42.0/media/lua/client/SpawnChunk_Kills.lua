@@ -17,23 +17,57 @@ function SpawnChunk.onZombieDead(zombie)
     
     -- CHUNK MODE: Track kills per chunk
     if data.chunkMode then
-        local currentChunkData = data.chunks and data.chunks[data.currentChunk]
-        if not currentChunkData then return end
-        if currentChunkData.completed then return end
+        -- Detect which chunk the player is currently in
+        local playerX = math.floor(pl:getX())
+        local playerY = math.floor(pl:getY())
+        local playerChunkKey = SpawnChunk.getChunkKeyFromPosition(playerX, playerY, data)
         
-        -- Increment kill counter for current chunk
-        currentChunkData.killCount = currentChunkData.killCount + 1
+        -- Check if player is in an unlocked or available chunk
+        local playerChunkData = data.chunks and data.chunks[playerChunkKey]
+        if not playerChunkData then
+            -- Player is in an invalid chunk, don't count kill
+            print("[" .. username .. "] Kill in invalid chunk " .. playerChunkKey .. ", not counted")
+            return
+        end
         
-        print("[" .. username .. "] Chunk " .. data.currentChunk .. " - Kill " .. currentChunkData.killCount .. " / " .. currentChunkData.killTarget)
+        -- Check if chunk is unlocked (unlock happens automatically when player enters - see SpawnChunk_ChunkEntry.lua)
+        if not playerChunkData.unlocked then
+            -- Player is in a locked chunk, don't count kill
+            print("[" .. username .. "] Kill in locked chunk " .. playerChunkKey .. ", not counted")
+            return
+        end
+        
+        -- Check if this chunk is already completed
+        if playerChunkData.completed then
+            print("[" .. username .. "] Kill in completed chunk " .. playerChunkKey .. ", not counted")
+            return
+        end
+        
+        -- Update current chunk if player moved to a different one
+        if playerChunkKey ~= data.currentChunk then
+            print("[" .. username .. "] Switched to chunk " .. playerChunkKey)
+            data.currentChunk = playerChunkKey
+            
+            -- Reset sound system when switching chunks
+            data.currentSoundRadius = 0
+            data.lastClosestZombieDistance = nil
+            data.consecutiveNonApproachingWaves = 0
+            print("[" .. username .. "] Sound system reset for new chunk")
+        end
+        
+        -- Increment kill counter for the chunk player is in
+        playerChunkData.killCount = playerChunkData.killCount + 1
+        
+        print("[" .. username .. "] Chunk " .. playerChunkKey .. " - Kill " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget)
         
         -- Show progress notification every 5 kills
-        if currentChunkData.killCount % 5 == 0 then
-            pl:setHaloNote("Chunk " .. data.currentChunk .. " - Kills: " .. currentChunkData.killCount .. " / " .. currentChunkData.killTarget, 100, 255, 100, 150)
+        if playerChunkData.killCount % 5 == 0 then
+            pl:setHaloNote("Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget, 100, 255, 100, 150)
         end
         
         -- Check for chunk completion
-        if currentChunkData.killCount >= currentChunkData.killTarget then
-            SpawnChunk.onChunkComplete(data.currentChunk)
+        if playerChunkData.killCount >= playerChunkData.killTarget then
+            SpawnChunk.onChunkComplete(playerChunkKey)
         end
     else
         -- CLASSIC MODE: Track kills globally
@@ -78,7 +112,11 @@ function SpawnChunk.onChunkComplete(chunkKey)
     pl:playSound("LevelUp")
     
     -- Show completion message
-    pl:setHaloNote("Chunk " .. chunkKey .. " Complete! Adjacent chunks unlocked!", 100, 255, 100, 300)
+    local unlockPattern = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ChunkUnlockPattern) or 1
+    local message = unlockPattern == 1 and 
+        "Chunk " .. chunkKey .. " Complete! Walk to an adjacent chunk to unlock it!" or
+        "Chunk " .. chunkKey .. " Complete! Adjacent chunks unlocked!"
+    pl:setHaloNote(message, 100, 255, 100, 300)
     
     -- Give reward items
     local inv = pl:getInventory()
@@ -91,16 +129,23 @@ function SpawnChunk.onChunkComplete(chunkKey)
     -- Unlock adjacent chunks based on sandbox setting
     local unlockPattern = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ChunkUnlockPattern) or 1
     
-    -- Pattern 1: Cardinal only (N, E, S, W)
-    -- Pattern 2: All adjacent (including diagonals - not yet implemented)
+    -- Pattern 1: Cardinal - mark as available (player chooses direction by walking)
+    -- Pattern 2: All adjacent - unlock immediately (all 4 directions)
     
     local newChunksUnlocked = 0
     for direction, adjacentKey in pairs(adjacentChunks) do
-        -- Check if chunk is already unlocked
+        -- Check if chunk is already unlocked or available
         local adjacentData = SpawnChunk.getChunkData(adjacentKey)
-        if not adjacentData or not adjacentData.unlocked then
-            -- Unlock the chunk
-            local newChunk = SpawnChunk.unlockChunk(adjacentKey)
+        if not adjacentData or (not adjacentData.unlocked and not adjacentData.available) then
+            local newChunk
+            
+            if unlockPattern == 1 then
+                -- Pattern 1 (Cardinal): Mark as available, will unlock when player enters
+                newChunk = SpawnChunk.makeChunkAvailable(adjacentKey)
+            else
+                -- Pattern 2 (All Adjacent): Unlock immediately  
+                newChunk = SpawnChunk.unlockChunk(adjacentKey)
+            end
             
             -- Calculate kill target for new chunk (same formula as initial chunk)
             local cell = getCell()
@@ -127,9 +172,41 @@ function SpawnChunk.onChunkComplete(chunkKey)
     
     print("[" .. username .. "] Unlocked " .. newChunksUnlocked .. " new chunk(s)")
     
-    -- Reset visual markers flag to redraw boundaries for new chunks
+    -- Reset sound system when switching to new chunks
+    data.currentSoundRadius = 0
+    data.lastClosestZombieDistance = nil
+    data.consecutiveNonApproachingWaves = 0
+    
+    -- Recreate visual markers immediately to show completed/unlocked chunks
     data.markersCreated = false
     data.mapSymbolCreated = false
+    
+    -- Remove old markers first
+    if SpawnChunk.removeGroundMarkers then
+        SpawnChunk.removeGroundMarkers()
+    end
+    if SpawnChunk.removeMapSymbol then
+        SpawnChunk.removeMapSymbol()
+    end
+    
+    -- Recreate markers with a short delay to ensure cleanup is complete
+    local timer = 0
+    local function recreateVisuals()
+        timer = timer + 1
+        if timer >= 10 then  -- ~0.3 second delay
+            if SpawnChunk.createGroundMarkers then
+                SpawnChunk.createGroundMarkers()
+                print("[" .. username .. "] Ground markers recreated after chunk completion")
+            end
+            if SpawnChunk.addMapSymbol then
+                SpawnChunk.addMapSymbol()
+                data.mapSymbolCreated = true
+                print("[" .. username .. "] Map symbols recreated after chunk completion")
+            end
+            Events.OnTick.Remove(recreateVisuals)
+        end
+    end
+    Events.OnTick.Add(recreateVisuals)
 end
 
 -----------------------  VICTORY CONDITION  ---------------------------

@@ -67,6 +67,18 @@ function SpawnChunk.getBoundaryEdgeSquares()
                 table.insert(allEdgeSquares, edge)
             end
         end
+        
+        -- Also get boundaries for available (not yet unlocked) chunks
+        if data.chunks then
+            for chunkKey, chunkData in pairs(data.chunks) do
+                if chunkData.available and not chunkData.unlocked then
+                    local chunkEdges = SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
+                    for _, edge in ipairs(chunkEdges) do
+                        table.insert(allEdgeSquares, edge)
+                    end
+                end
+            end
+        end
     else
         -- Classic mode: single boundary
         local spawnX = data.spawnX
@@ -135,6 +147,8 @@ function SpawnChunk.createGroundMarkers()
                 if chunkData then
                     if chunkData.completed then
                         r, g, b = 0, 1, 0  -- Green for completed chunks
+                    elseif chunkData.available and not chunkData.unlocked then
+                        r, g, b = 0.5, 0.5, 1  -- Blue for available (not yet unlocked)
                     elseif chunkKey == data.currentChunk then
                         r, g, b = 1, 1, 0  -- Yellow for current chunk
                     else
@@ -311,13 +325,14 @@ function SpawnChunk.addMapSymbol()
     
     print("[" .. username .. "] Drawing boundary lines on map...")
     
-    local scale = 0.15  -- Small scale for thin lines
+    local scale = 0.1  -- Small scale for thin lines
     
     -- Draw boundaries based on mode
     if data.chunkMode then
         -- CHUNK MODE: Draw boundaries for all unlocked chunks
         local unlockedChunks = SpawnChunk.getUnlockedChunks()
         
+        -- Draw unlocked chunks
         for _, chunkKey in ipairs(unlockedChunks) do
             local chunkData = SpawnChunk.getChunkData(chunkKey)
             local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
@@ -347,6 +362,36 @@ function SpawnChunk.addMapSymbol()
                 
                 if not success then
                     print("[" .. username .. "] ERROR drawing map lines for " .. chunkKey .. ": " .. tostring(err))
+                end
+            end
+        end
+        
+        -- Also draw available (not yet unlocked) chunks
+        if data.chunks then
+            for chunkKey, chunkData in pairs(data.chunks) do
+                if chunkData.available and not chunkData.unlocked then
+                    local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
+                    
+                    if minX then
+                        -- Blue for available chunks
+                        local r, g, b = 0.5, 0.5, 1
+                        
+                        -- Draw 4 boundary lines for this chunk
+                        local success, err = pcall(function()
+                            -- Top edge
+                            SpawnChunk.drawMapLine(symAPI, minX, minY, maxX, minY, r, g, b, scale)
+                            -- Right edge
+                            SpawnChunk.drawMapLine(symAPI, maxX, minY, maxX, maxY, r, g, b, scale)
+                            -- Bottom edge
+                            SpawnChunk.drawMapLine(symAPI, maxX, maxY, minX, maxY, r, g, b, scale)
+                            -- Left edge
+                            SpawnChunk.drawMapLine(symAPI, minX, maxY, minX, minY, r, g, b, scale)
+                        end)
+                        
+                        if not success then
+                            print("[" .. username .. "] ERROR drawing map lines for available chunk " .. chunkKey .. ": " .. tostring(err))
+                        end
+                    end
                 end
             end
         end
@@ -389,7 +434,7 @@ function SpawnChunk.addMapSymbol()
         if spawnSym then
             spawnSym:setAnchor(0.5, 0.5)
             spawnSym:setRGBA(0, 1, 0, 1)  -- Green
-            spawnSym:setScale(0.15)
+            spawnSym:setScale(0.1)
             
             local symbolStorage = SpawnChunk.getMapSymbolStorage()
             table.insert(symbolStorage, spawnSym)
@@ -506,21 +551,31 @@ function SpawnChunkHUD:render()
     -- Draw progress based on mode
     local progressText
     if data.chunkMode then
-        local currentChunkData = data.chunks and data.chunks[data.currentChunk]
-        if currentChunkData then
-            if currentChunkData.completed then
-                progressText = "Chunk " .. data.currentChunk .. " Complete!"
+        -- Detect which chunk player is currently standing in
+        local playerX = math.floor(pl:getX())
+        local playerY = math.floor(pl:getY())
+        local playerChunkKey = SpawnChunk.getChunkKeyFromPosition(playerX, playerY, data)
+        local playerChunkData = data.chunks and data.chunks[playerChunkKey]
+        
+        if playerChunkData and playerChunkData.unlocked then
+            -- Player is in an unlocked chunk
+            if playerChunkData.completed then
+                progressText = "Chunk " .. playerChunkKey .. " Complete!"
                 self:drawText(progressText, 10, 10, 0, 1, 0, 1, UIFont.Medium)
             else
-                progressText = "Chunk " .. data.currentChunk .. " - Kills: " .. currentChunkData.killCount .. " / " .. currentChunkData.killTarget
+                progressText = "Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget
                 self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
             end
-            
-            -- Show unlocked chunks count
-            local unlockedCount = #SpawnChunk.getUnlockedChunks()
-            local chunksText = "Unlocked Chunks: " .. unlockedCount
-            self:drawText(chunksText, 10, 35, 0.7, 1, 0.7, 1, UIFont.Small)
+        else
+            -- Player is in a locked or invalid chunk
+            progressText = "In locked chunk: " .. playerChunkKey
+            self:drawText(progressText, 10, 10, 1, 0.5, 0.5, 1, UIFont.Medium)
         end
+        
+        -- Show unlocked chunks count
+        local unlockedCount = #SpawnChunk.getUnlockedChunks()
+        local chunksText = "Unlocked Chunks: " .. unlockedCount
+        self:drawText(chunksText, 10, 35, 0.7, 1, 0.7, 1, UIFont.Small)
     else
         if data.isComplete then
             self:drawText("Challenge Complete!", 10, 10, 0, 1, 0, 1, UIFont.Medium)
@@ -577,12 +632,23 @@ function SpawnChunkHUD:render()
         self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
         yPos = yPos + 15
         
+        -- Show mod version
+        self:drawText("Mod Version: " .. (SpawnChunk.MOD_VERSION or "Unknown"), 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)
+        yPos = yPos + 15
+        
         self:drawText("Zombie Population: " .. zombieCount, 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        -- Always show attacking structure status
+        local attackingStatus = data.zombieAttackingStructure and "YES" or "NO"
+        local asr, asg, asb = data.zombieAttackingStructure and 1 or 0.5, data.zombieAttackingStructure and 0.5 or 0.5, 0
+        self:drawText("Attacking Structure: " .. attackingStatus, 10, yPos, asr, asg, asb, 1, UIFont.Small)
         yPos = yPos + 15
         
         -- Show closest zombie distance
         if closestZombie then
-            local distText = string.format("Closest Zombie: %.1f tiles", closestDistance)
+            -- Distance from chunk center (used for spawner logic)
+            local distText = string.format("Closest Zombie (from center): %.1f tiles", closestDistance)
             -- Color code based on distance
             local r, g, b = 1, 1, 1  -- White default
             if closestDistance < data.boundarySize then
@@ -595,13 +661,113 @@ function SpawnChunkHUD:render()
             self:drawText(distText, 10, yPos, r, g, b, 1, UIFont.Small)
             yPos = yPos + 15
             
+            -- Distance from player (more useful for player awareness)
+            local distFromPlayer = data.closestZombieFromPlayer or 0
+            local playerDistText = string.format("Closest Zombie (from you): %.1f tiles", distFromPlayer)
+            local pr, pg, pb = 1, 1, 1  -- White default
+            if distFromPlayer < 20 then
+                pr, pg, pb = 1, 0, 0  -- Red - very close!
+            elseif distFromPlayer < 40 then
+                pr, pg, pb = 1, 1, 0  -- Yellow - nearby
+            else
+                pr, pg, pb = 0, 1, 0  -- Green - far away
+            end
+            self:drawText(playerDistText, 10, yPos, pr, pg, pb, 1, UIFont.Small)
+            yPos = yPos + 15
+            
             -- Show if zombie is approaching
             if data.lastClosestZombieDistance then
                 local isApproaching = closestDistance < data.lastClosestZombieDistance
-                local approachText = isApproaching and "APPROACHING" or "NOT APPROACHING"
-                local ar, ag, ab = isApproaching and 0 or 1, isApproaching and 1 or 0.5, 0
-                self:drawText("Status: " .. approachText, 10, yPos, ar, ag, ab, 1, UIFont.Small)
-                yPos = yPos + 15
+                local attackingStructure = data.zombieAttackingStructure or false
+                
+                local statusText
+                if attackingStructure then
+                    statusText = "ATTACKING STRUCTURE"
+                    self:drawText("Status: " .. statusText, 10, yPos, 1, 0.5, 0, 1, UIFont.Small)  -- Orange
+                    yPos = yPos + 15
+                    
+                    -- Show attack target details
+                    if data.attackTargetName then
+                        -- Show target name with opacity status
+                        local opaqueStatus = data.attackTargetOpaque and "(Opaque)" or "(Transparent)"
+                        local targetText = "→ Target: " .. data.attackTargetName .. " " .. opaqueStatus
+                        self:drawText(targetText, 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)
+                        yPos = yPos + 15
+                        
+                        -- Show damage status (if known)
+                        if data.damageThisCycle == true then
+                            self:drawText("→ Damage: ⚔ DEALING DAMAGE!", 10, yPos, 1, 0, 0, 1, UIFont.Small)  -- Red - damage happening!
+                            yPos = yPos + 15
+                        elseif data.damageThisCycle == false then
+                            self:drawText("→ Damage: No damage (hitting but not breaking)", 10, yPos, 1, 1, 0, 1, UIFont.Small)  -- Yellow - no damage
+                            yPos = yPos + 15
+                        else
+                            -- Unknown damage status (no health tracking available)
+                            self:drawText("→ Damage: Unknown (no health data)", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)  -- Gray
+                            yPos = yPos + 15
+                            -- Warn about indestructible structure
+                            self:drawText("⚠ Structure may be INDESTRUCTIBLE!", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)  -- Orange warning
+                            yPos = yPos + 15
+                            self:drawText("   (Zombie is stuck, backup will spawn)", 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)  -- Gray info
+                            yPos = yPos + 15
+                        end
+                        
+                        -- Show health bar if available
+                        if data.attackTargetHealth and data.attackTargetMaxHealth then
+                            local healthPercent = (data.attackTargetHealth / data.attackTargetMaxHealth) * 100
+                            local healthText = string.format("→ Health: %.0f / %.0f (%.0f%%)", 
+                                data.attackTargetHealth, data.attackTargetMaxHealth, healthPercent)
+                            
+                            -- Color code based on health percentage
+                            local hr, hg, hb
+                            if healthPercent > 66 then
+                                hr, hg, hb = 0, 1, 0  -- Green - high health
+                            elseif healthPercent > 33 then
+                                hr, hg, hb = 1, 1, 0  -- Yellow - medium health
+                            else
+                                hr, hg, hb = 1, 0, 0  -- Red - low health, about to break!
+                            end
+                            
+                            self:drawText(healthText, 10, yPos, hr, hg, hb, 1, UIFont.Small)
+                            yPos = yPos + 15
+                            
+                            -- Show visual health bar
+                            local barWidth = 100
+                            local barHeight = 8
+                            local barX = 15
+                            local barY = yPos
+                            
+                            -- Draw background (black)
+                            self:drawRect(barX, barY, barWidth, barHeight, 1, 0, 0, 0)
+                            
+                            -- Draw health bar (color coded)
+                            local healthBarWidth = math.floor((barWidth - 2) * (healthPercent / 100))
+                            self:drawRect(barX + 1, barY + 1, healthBarWidth, barHeight - 2, 1, hr, hg, hb)
+                            
+                            -- Draw border (white)
+                            self:drawRectBorder(barX, barY, barWidth, barHeight, 1, 1, 1, 1)
+                            
+                            yPos = yPos + barHeight + 5
+                        elseif data.attackTargetHealth then
+                            -- Health available but no max health
+                            local healthText = string.format("→ Health: %.0f", data.attackTargetHealth)
+                            self:drawText(healthText, 10, yPos, 1, 1, 0, 1, UIFont.Small)
+                            yPos = yPos + 15
+                        else
+                            -- No health info available
+                            self:drawText("→ Health: Unknown", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)
+                            yPos = yPos + 15
+                        end
+                    end
+                elseif isApproaching then
+                    statusText = "APPROACHING"
+                    self:drawText("Status: " .. statusText, 10, yPos, 0, 1, 0, 1, UIFont.Small)  -- Green
+                    yPos = yPos + 15
+                else
+                    statusText = "NOT APPROACHING"
+                    self:drawText("Status: " .. statusText, 10, yPos, 1, 0.5, 0, 1, UIFont.Small)  -- Orange
+                    yPos = yPos + 15
+                end
             end
         else
             self:drawText("Closest Zombie: N/A", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)
@@ -637,6 +803,90 @@ function SpawnChunkHUD:render()
         if totalWaves > 0 then
             local currentReach = data.currentSoundRadius or 0
             self:drawText("Current Sound Reach: " .. currentReach .. " tiles", 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+            yPos = yPos + 15
+        end
+        
+        -- Show stuck detection status (always show if there's a zombie)
+        local consecutiveNonApproaching = data.consecutiveNonApproachingWaves or 0
+        if closestZombie then
+            local stuckWarning = string.format("Non-Progress Waves: %d / 10", consecutiveNonApproaching)
+            local r = consecutiveNonApproaching >= 8 and 1 or 1  -- Red if close to threshold
+            local g = consecutiveNonApproaching >= 8 and 0 or 0.7  -- Orange/Red gradient
+            
+            -- Color code based on severity
+            if consecutiveNonApproaching == 0 then
+                r, g = 0, 1  -- Green - making progress
+            elseif consecutiveNonApproaching < 5 then
+                r, g = 1, 1  -- Yellow - minor concern
+            elseif consecutiveNonApproaching < 8 then
+                r, g = 1, 0.7  -- Orange - getting stuck
+            else
+                r, g = 1, 0  -- Red - very stuck
+            end
+            
+            self:drawText(stuckWarning, 10, yPos, r, g, 0, 1, UIFont.Small)
+            yPos = yPos + 15
+            
+            if consecutiveNonApproaching >= 10 then
+                self:drawText("🆘 Spawning backup zombie!", 10, yPos, 1, 0, 0, 1, UIFont.Small)
+                yPos = yPos + 15
+            elseif consecutiveNonApproaching >= 8 then
+                self:drawText("⚠ Zombie stuck! Backup will spawn at 10", 10, yPos, 1, 0, 0, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+        end
+        
+        -- Show directional spawn tracking
+        local stuckCount = 0
+        local stuckDirections = {}
+        for dir, stuckInfo in pairs(data.stuckZombiesByDirection or {}) do
+            if stuckInfo.isStuck then
+                stuckCount = stuckCount + 1
+                table.insert(stuckDirections, dir)
+            end
+        end
+        
+        if stuckCount > 0 then
+            self:drawText("--- Stuck Zombie Tracking ---", 10, yPos, 1, 1, 0, 1, UIFont.Small)
+            yPos = yPos + 15
+            
+            local stuckText = string.format("Stuck Directions: %d / 4", stuckCount)
+            local sr, sg, sb = 1, 1, 1
+            if stuckCount >= 4 then
+                sr, sg, sb = 1, 0, 0  -- Red - all directions stuck!
+            elseif stuckCount >= 2 then
+                sr, sg, sb = 1, 0.7, 0  -- Orange - multiple stuck
+            else
+                sr, sg, sb = 1, 1, 0  -- Yellow - one stuck
+            end
+            
+            self:drawText(stuckText, 10, yPos, sr, sg, sb, 1, UIFont.Small)
+            yPos = yPos + 15
+            
+            -- List stuck directions
+            for _, dir in ipairs(stuckDirections) do
+                local dirInfo = data.stuckZombiesByDirection[dir]
+                local dirText = string.format("  %s: %s %s", 
+                    dir:upper(), 
+                    dirInfo.targetName or "Unknown",
+                    dirInfo.targetOpaque and "(Opaque-Despawned)" or "(Transparent-Active)")
+                self:drawText(dirText, 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+            
+            -- Show next spawn direction
+            if data.lastSpawnDirection then
+                local nextDir = SpawnChunk.getNextSpawnDirection(data)
+                self:drawText("Next Spawn Direction: " .. nextDir:upper(), 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+        end
+        
+        -- Challenge stuck flag
+        if data.challengeStuckFlag then
+            self:drawText("⚠️ CHALLENGE STUCK FLAG ACTIVE!", 10, yPos, 1, 0, 0, 1, UIFont.Small)
+            yPos = yPos + 15
+            self:drawText("All 4 directions have stuck zombies!", 10, yPos, 1, 0, 0, 1, UIFont.Small)
             yPos = yPos + 15
         end
         

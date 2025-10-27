@@ -10,12 +10,12 @@ function SpawnChunk.isInBounds(x, y)
     local data = SpawnChunk.getData()
     if not data.isInitialized then return true end
     
-    -- In chunk mode, check if position is within ANY unlocked chunk
+    -- In chunk mode, check if position is within ANY unlocked or available chunk
     if data.chunkMode then
         local unlockedChunks = SpawnChunk.getUnlockedChunks()
         if #unlockedChunks == 0 then return false end
         
-        -- Check if player is within any unlocked chunk
+        -- Check if player is within any unlocked or available chunk
         for _, chunkKey in ipairs(unlockedChunks) do
             local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
             if minX then
@@ -25,7 +25,21 @@ function SpawnChunk.isInBounds(x, y)
             end
         end
         
-        return false  -- Not in any unlocked chunk
+        -- Also check available chunks (can be entered but not unlocked yet)
+        if data.chunks then
+            for chunkKey, chunkData in pairs(data.chunks) do
+                if chunkData.available and not chunkData.unlocked then
+                    local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
+                    if minX then
+                        if x >= minX and x <= maxX and y >= minY and y <= maxY then
+                            return true  -- Allow entry to available chunks
+                        end
+                    end
+                end
+            end
+        end
+        
+        return false  -- Not in any unlocked or available chunk
     else
         -- Classic mode: single boundary check
         if data.isComplete then return true end -- Allow free movement after completion

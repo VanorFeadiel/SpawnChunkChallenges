@@ -10,5 +10,6 @@ Sandbox_EN = {
     Sandbox_SpawnChunkChallenge_DebugMode = "Enable debug information",
     Sandbox_SpawnChunkChallenge_DebugCloseSpawn = "Debug: Spawn zombies 5 tiles from player",
     Sandbox_SpawnChunkChallenge_EnableChunkMode = "Enable Additive Chunk Mode",
-    Sandbox_SpawnChunkChallenge_ChunkUnlockPattern = "Chunk Unlock Pattern (1=Cardinal, 2=All Adjacent)",
+    Sandbox_SpawnChunkChallenge_ChunkUnlockPattern = "Chunk Unlock Pattern (1=Choose Direction, 2=Unlock All Adjacent)",
+    Sandbox_SpawnChunkChallenge_NewChunkSpawnDelay = "Spawn Delay After Entering New Chunk (minutes, 0-1440)",
 }
