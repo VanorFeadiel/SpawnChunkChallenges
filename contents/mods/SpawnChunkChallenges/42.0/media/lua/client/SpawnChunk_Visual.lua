@@ -522,25 +522,32 @@ end)
 
 -----------------------  ON-SCREEN HUD  ---------------------------
 
-require "ISUI/ISPanel"
+require "ISUI/ISCollapsableWindow"
 
-SpawnChunkHUD = ISPanel:derive("SpawnChunkHUD")
+SpawnChunkHUD = ISCollapsableWindow:derive("SpawnChunkHUD")
+
+function SpawnChunkHUD:createChildren()
+    -- Title handled by ISCollapsableWindow
+    ISCollapsableWindow.createChildren(self)
+end
 
 function SpawnChunkHUD:new(x, y, width, height)
-    local o = ISPanel:new(x, y, width, height)
+    local o = ISCollapsableWindow:new(x, y, width, height)
     setmetatable(o, self)
     self.__index = self
-    o.borderColor = {r=0.4, g=0.4, b=0.4, a=1}
+    
     o.backgroundColor = {r=0, g=0, b=0, a=0.8}
+    o:setTitle("SpawnChunk HUD")
+    o:setResizable(true)
+    
     return o
 end
 
-function SpawnChunkHUD:initialise()
-    ISPanel.initialise(self)
-end
-
 function SpawnChunkHUD:render()
-    ISPanel.render(self)
+    ISCollapsableWindow.render(self)
+    
+    -- Don't render content if collapsed
+    if self.collapsed then return end
     
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
@@ -548,9 +555,13 @@ function SpawnChunkHUD:render()
     local pl = getPlayer()
     if not pl then return end
     
+    -- Content starts below title bar (25px)
+    local TITLE_BAR_HEIGHT = 25
+    local contentYOffset = TITLE_BAR_HEIGHT
+    
     -- Draw progress based on mode
     local progressText
-    local statusLine = 30  -- Line for status messages
+    local statusLine = contentYOffset + 5  -- Line for status messages
     local chunkCompleted = false
     
     if data.chunkMode then
@@ -564,16 +575,16 @@ function SpawnChunkHUD:render()
             -- Player is in an unlocked chunk
             if playerChunkData.completed then
                 progressText = "Chunk " .. playerChunkKey .. " Complete!"
-                self:drawText(progressText, 10, 10, 0, 1, 0, 1, UIFont.Medium)
+                self:drawText(progressText, 10, contentYOffset + 5, 0, 1, 0, 1, UIFont.Medium)
                 chunkCompleted = true
             else
                 progressText = "Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget
-                self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
+                self:drawText(progressText, 10, contentYOffset + 5, 1, 1, 1, 1, UIFont.Medium)
             end
         else
             -- Player is in a locked or invalid chunk
             progressText = "In locked chunk: " .. playerChunkKey
-            self:drawText(progressText, 10, 10, 1, 0.5, 0.5, 1, UIFont.Medium)
+            self:drawText(progressText, 10, contentYOffset + 5, 1, 0.5, 0.5, 1, UIFont.Medium)
         end
         
         -- Show spawn delay status or paused status
@@ -605,16 +616,16 @@ function SpawnChunkHUD:render()
         self:drawText(chunksText, 10, statusLine + 5, 0.7, 1, 0.7, 1, UIFont.Small)
     else
         if data.isComplete then
-            self:drawText("Challenge Complete!", 10, 10, 0, 1, 0, 1, UIFont.Medium)
+            self:drawText("Challenge Complete!", 10, contentYOffset + 5, 0, 1, 0, 1, UIFont.Medium)
             return
         end
         progressText = "Kills: " .. data.killCount .. " / " .. data.killTarget
-        self:drawText(progressText, 10, 10, 1, 1, 1, 1, UIFont.Medium)
+        self:drawText(progressText, 10, contentYOffset + 5, 1, 1, 1, 1, UIFont.Medium)
     end
     
     -- Draw distance to boundary
     -- Note: spawnDelayActive and chunkCompleted already calculated above
-    local yOffset = data.chunkMode and 60 or 35  -- Adjust for extra line in chunk mode
+    local yOffset = contentYOffset + (data.chunkMode and 30 or 20)  -- Adjust for extra line in chunk mode
     
     -- Check if we need extra space (recalculate for non-chunk mode)
     local needsExtraSpace = chunkCompleted
@@ -628,11 +639,9 @@ function SpawnChunkHUD:render()
         yOffset = yOffset + 20  -- Extra space for status messages
     end
     
-    local dx = math.abs(pl:getX() - data.spawnX)
-    local dy = math.abs(pl:getY() - data.spawnY)
-    local distToBoundary = data.boundarySize - math.max(dx, dy)
+    -- Calculate distance to boundary of all allowed chunks
+    local distToBoundary = SpawnChunk.getDistanceToAllowedBoundary(pl:getX(), pl:getY())
     
-    -- In chunk mode, this is approximate (distance from spawn, not from current chunk center)
     local distText = "Distance to boundary: " .. math.floor(distToBoundary) .. " tiles"
     local color = distToBoundary < 10 and {r=1, g=0, b=0} or {r=1, g=1, b=1}
     self:drawText(distText, 10, yOffset, color.r, color.g, color.b, 1, UIFont.Small)
@@ -647,16 +656,27 @@ function SpawnChunkHUD:render()
         local closestDistance = 999999
         
         if nearbyZeds then
+            -- Get reference point for distance calculation (same as boundary check)
+            local debugRefX, debugRefY
+            if data.chunkMode and data.currentChunk then
+                debugRefX, debugRefY = SpawnChunk.getChunkCenter(data.currentChunk, data)
+                if not debugRefX then
+                    debugRefX, debugRefY = data.spawnX, data.spawnY
+                end
+            else
+                debugRefX, debugRefY = data.spawnX, data.spawnY
+            end
+            
             for i = 0, nearbyZeds:size() - 1 do
                 local z = nearbyZeds:get(i)
                 if z and not z:isDead() then
                     zombieCount = zombieCount + 1
                     
-                    -- Calculate distance to this zombie from spawn point
+                    -- Calculate distance to this zombie from current chunk center (or spawn in classic)
                     local zx = z:getX()
                     local zy = z:getY()
-                    local dx = math.abs(zx - data.spawnX)
-                    local dy = math.abs(zy - data.spawnY)
+                    local dx = math.abs(zx - debugRefX)
+                    local dy = math.abs(zy - debugRefY)
                     local distance = math.sqrt(dx * dx + dy * dy)
                     
                     if distance < closestDistance then
@@ -668,7 +688,7 @@ function SpawnChunkHUD:render()
         end
         
         -- Debug info with spawn/sound tracking
-        local yPos = data.chunkMode and 85 or 60
+        local yPos = contentYOffset + (data.chunkMode and 55 or 40)
         self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
         yPos = yPos + 15
         
@@ -741,12 +761,39 @@ function SpawnChunkHUD:render()
                         elseif data.damageThisCycle == false then
                             self:drawText("→ Damage: No damage (hitting but not breaking)", 10, yPos, 1, 1, 0, 1, UIFont.Small)  -- Yellow - no damage
                             yPos = yPos + 15
+                            
+                            -- Show attack duration if tracking
+                            if data.attackStartTime then
+                                local gameTime = getGameTime()
+                                local currentMinutes = gameTime:getWorldAgeHours() * 60
+                                local attackDuration = math.floor(currentMinutes - data.attackStartTime)
+                                local durationText = string.format("   Attack duration: %d in-game min (stuck at 1 hr)", attackDuration)
+                                
+                                -- Color based on how close to threshold
+                                local dr, dg, db = 1, 1, 0  -- Yellow default
+                                if attackDuration >= 60 then
+                                    dr, dg, db = 1, 0, 0  -- Red - threshold reached!
+                                elseif attackDuration >= 45 then
+                                    dr, dg, db = 1, 0.5, 0  -- Orange - getting close
+                                end
+                                
+                                self:drawText(durationText, 10, yPos, dr, dg, db, 1, UIFont.Small)
+                                yPos = yPos + 15
+                            end
                         else
-                            -- Unknown damage status (no health tracking available)
-                            self:drawText("→ Damage: Unknown (no health data)", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)  -- Gray
-                            yPos = yPos + 15
+                            -- Unknown damage status or functionally indestructible
+                            if data.attackTargetFunctionallyIndestructible then
+                                self:drawText("→ Damage: FUNCTIONALLY INDESTRUCTIBLE", 10, yPos, 1, 0, 0, 1, UIFont.Small)  -- Red
+                                yPos = yPos + 15
+                                self:drawText("   (No damage after 1 in-game hour)", 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)
+                                yPos = yPos + 15
+                            else
+                                self:drawText("→ Damage: Unknown (no health data)", 10, yPos, 0.5, 0.5, 0.5, 1, UIFont.Small)  -- Gray
+                                yPos = yPos + 15
+                            end
+                            
                             -- Warn about indestructible structure
-                            self:drawText("⚠ Structure may be INDESTRUCTIBLE!", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)  -- Orange warning
+                            self:drawText("⚠ Structure INDESTRUCTIBLE!", 10, yPos, 1, 0.5, 0, 1, UIFont.Small)  -- Orange warning
                             yPos = yPos + 15
                             self:drawText("   (Zombie is stuck, backup will spawn)", 10, yPos, 0.7, 0.7, 0.7, 1, UIFont.Small)  -- Gray info
                             yPos = yPos + 15
@@ -822,6 +869,55 @@ function SpawnChunkHUD:render()
         
         self:drawText("Spawn: (" .. data.spawnX .. ", " .. data.spawnY .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
+        
+        -- Show current reference point (chunk center in chunk mode)
+        if data.chunkMode and data.currentChunk then
+            local currentRefX, currentRefY = SpawnChunk.getChunkCenter(data.currentChunk, data)
+            if currentRefX then
+                self:drawText(string.format("Current Chunk Center: (%d, %d)", currentRefX, currentRefY), 10, yPos, 0.5, 1, 0.5, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+            
+            -- Show bounding box of all allowed chunks
+            local minChunkX, maxChunkX, minChunkY, maxChunkY = nil, nil, nil, nil
+            if data.chunks then
+                for chunkKey, chunkData in pairs(data.chunks) do
+                    if chunkData.unlocked or chunkData.available then
+                        local coords = SpawnChunk.parseChunkKey(chunkKey)
+                        if coords then
+                            if not minChunkX or coords.chunkX < minChunkX then minChunkX = coords.chunkX end
+                            if not maxChunkX or coords.chunkX > maxChunkX then maxChunkX = coords.chunkX end
+                            if not minChunkY or coords.chunkY < minChunkY then minChunkY = coords.chunkY end
+                            if not maxChunkY or coords.chunkY > maxChunkY then maxChunkY = coords.chunkY end
+                        end
+                    end
+                end
+            end
+            
+            if minChunkX then
+                local boundarySize = data.boundarySize
+                local chunkSize = (boundarySize * 2) + 1
+                local minCenterX = data.spawnX + (minChunkX * chunkSize)
+                local maxCenterX = data.spawnX + (maxChunkX * chunkSize)
+                local minCenterY = data.spawnY + (minChunkY * chunkSize)
+                local maxCenterY = data.spawnY + (maxChunkY * chunkSize)
+                local westBoundary = minCenterX - boundarySize
+                local eastBoundary = maxCenterX + boundarySize
+                local northBoundary = minCenterY - boundarySize
+                local southBoundary = maxCenterY + boundarySize
+                
+                self:drawText(string.format("Allowed Area: X[%d to %d] Y[%d to %d]", 
+                    westBoundary, eastBoundary, northBoundary, southBoundary), 
+                    10, yPos, 0.7, 0.7, 1, 1, UIFont.Small)
+                yPos = yPos + 15
+                
+                local width = eastBoundary - westBoundary
+                local height = southBoundary - northBoundary
+                self:drawText(string.format("Allowed Size: %d x %d tiles", width, height), 
+                    10, yPos, 0.7, 0.7, 1, 1, UIFont.Small)
+                yPos = yPos + 15
+            end
+        end
         
         -- Spawn/Sound tracking stats
         self:drawText("--- Spawner Stats ---", 10, yPos, 1, 1, 0, 1, UIFont.Small)
@@ -946,17 +1042,97 @@ function SpawnChunkHUD:render()
     end
 end
 
+function SpawnChunkHUD:onResize()
+    ISCollapsableWindow.onResize(self)
+    
+    local data = SpawnChunk.getData()
+    data.hudWindowWidth = self.width
+    data.hudWindowHeight = self.height
+end
+
+function SpawnChunkHUD:onMove()
+    ISCollapsableWindow.onMove(self)
+    
+    local data = SpawnChunk.getData()
+    data.hudWindowX = self:getX()
+    data.hudWindowY = self:getY()
+end
+
+function SpawnChunkHUD:onToggleCollapse()
+    ISCollapsableWindow.onToggleCollapse(self)
+    
+    local data = SpawnChunk.getData()
+    data.hudMinimized = self.collapsed
+end
+
+-- Global reference to HUD window
+SpawnChunk.hudWindow = nil
+
 -- Create and add HUD
 local function createHUD()
     -- Check if HUD is enabled in sandbox options
     local showHUD = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowHUD) ~= false
     if not showHUD then return end
     
-    local hud = SpawnChunkHUD:new(10, 100, 300, 80)
+    local data = SpawnChunk.getData()
+    
+    -- Use saved position/size or defaults
+    local x = data.hudWindowX or 200
+    local y = data.hudWindowY or 50
+    local width = data.hudWindowWidth or 450
+    local height = data.hudWindowHeight or 500
+    
+    local hud = SpawnChunkHUD:new(x, y, width, height)
     hud:initialise()
     hud:addToUIManager()
     hud:setVisible(true)
+    
+    -- Store global reference
+    SpawnChunk.hudWindow = hud
+    
+    -- Restore collapsed state
+    if data.hudMinimized then
+        hud.collapsed = true
+    end
 end
+
+-- Toggle HUD visibility
+function SpawnChunk.toggleHUD()
+    if SpawnChunk.hudWindow then
+        if SpawnChunk.hudWindow:getIsVisible() then
+            SpawnChunk.hudWindow:setVisible(false)
+        else
+            SpawnChunk.hudWindow:setVisible(true)
+        end
+    end
+end
+
+-- Register keybinding for HUD toggle
+local function registerHUDKeyBinding()
+    if keyBinding then
+        local hudBind = {}
+        hudBind.value = "[SpawnChunk]ToggleHUD"
+        hudBind.key = 0  -- Unassigned by default - player can set in key options
+        table.insert(keyBinding, hudBind)
+    end
+end
+
+-- Simple hotkey handler for HUD toggle
+Events.OnKeyPressed.Add(function(key)
+    local player = getPlayer()
+    if not player then return end
+    
+    -- Check if this is our custom keybinding
+    local isHUDToggle = getCore():getKey("SpawnChunk.ToggleHUD")
+    if key == isHUDToggle then
+        SpawnChunk.toggleHUD()
+    end
+end)
+
+-- Register on game start
+Events.OnGameStart.Add(function()
+    registerHUDKeyBinding()
+end)
 
 Events.OnGameStart.Add(function()
     local timer = 0

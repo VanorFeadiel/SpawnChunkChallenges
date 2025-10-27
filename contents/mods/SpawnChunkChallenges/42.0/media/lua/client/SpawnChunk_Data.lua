@@ -5,7 +5,7 @@
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.1.024"
+SpawnChunk.MOD_VERSION = "0.3.1.040"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 
@@ -59,6 +59,13 @@ function SpawnChunk.getData()
         stuckZombiesByDirection = {},  -- Track stuck zombies per cardinal direction
         lastSpawnDirection = nil,       -- Last direction used for spawning
         challengeStuckFlag = false,     -- True if all 4 directions have stuck zombies
+        
+        -- HUD window state (persistent)
+        hudWindowX = 200,               -- Window X position
+        hudWindowY = 50,                -- Window Y position
+        hudWindowWidth = 450,           -- Window width
+        hudWindowHeight = 500,          -- Window height
+        hudMinimized = false,           -- Whether window is minimized
     }
     
     return modData.SpawnChunk[username]
@@ -228,6 +235,71 @@ function SpawnChunk.getUnlockedChunks()
     end
     
     return unlocked
+end
+
+-- Calculate distance to boundary of all unlocked/available chunks
+-- Returns distance in tiles (negative if outside allowed area)
+function SpawnChunk.getDistanceToAllowedBoundary(playerX, playerY)
+    local data = SpawnChunk.getData()
+    
+    -- In classic mode, use simple distance from spawn point
+    if not data.chunkMode then
+        local dx = math.abs(playerX - data.spawnX)
+        local dy = math.abs(playerY - data.spawnY)
+        return data.boundarySize - math.max(dx, dy)
+    end
+    
+    -- In chunk mode, find bounding box of all unlocked + available chunks
+    local minChunkX, maxChunkX = nil, nil
+    local minChunkY, maxChunkY = nil, nil
+    
+    if data.chunks then
+        for chunkKey, chunkData in pairs(data.chunks) do
+            -- Include both unlocked and available chunks (player is allowed in both)
+            if chunkData.unlocked or chunkData.available then
+                local coords = SpawnChunk.parseChunkKey(chunkKey)
+                if coords then
+                    if not minChunkX or coords.chunkX < minChunkX then minChunkX = coords.chunkX end
+                    if not maxChunkX or coords.chunkX > maxChunkX then maxChunkX = coords.chunkX end
+                    if not minChunkY or coords.chunkY < minChunkY then minChunkY = coords.chunkY end
+                    if not maxChunkY or coords.chunkY > maxChunkY then maxChunkY = coords.chunkY end
+                end
+            end
+        end
+    end
+    
+    -- If no unlocked chunks found, fallback to spawn point
+    if not minChunkX then
+        local dx = math.abs(playerX - data.spawnX)
+        local dy = math.abs(playerY - data.spawnY)
+        return data.boundarySize - math.max(dx, dy)
+    end
+    
+    -- Calculate world coordinates of the bounding box edges
+    -- Each chunk extends boundarySize tiles from its center
+    local boundarySize = data.boundarySize
+    local chunkSize = (boundarySize * 2) + 1
+    
+    -- Get world coordinates of bounding box
+    local minCenterX = data.spawnX + (minChunkX * chunkSize)
+    local maxCenterX = data.spawnX + (maxChunkX * chunkSize)
+    local minCenterY = data.spawnY + (minChunkY * chunkSize)
+    local maxCenterY = data.spawnY + (maxChunkY * chunkSize)
+    
+    -- Extend to actual boundaries (center ± boundarySize)
+    local westBoundary = minCenterX - boundarySize
+    local eastBoundary = maxCenterX + boundarySize
+    local northBoundary = minCenterY - boundarySize
+    local southBoundary = maxCenterY + boundarySize
+    
+    -- Calculate distance to each edge
+    local distToWest = playerX - westBoundary
+    local distToEast = eastBoundary - playerX
+    local distToNorth = playerY - northBoundary
+    local distToSouth = southBoundary - playerY
+    
+    -- Return the minimum distance (closest edge)
+    return math.min(distToWest, distToEast, distToNorth, distToSouth)
 end
 
 -----------------------  DEBUG FUNCTIONS  ---------------------------

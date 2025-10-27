@@ -13,17 +13,31 @@ function SpawnChunk.isObjectOpaque(obj)
     local objectName = obj:getObjectName() or ""
     local spriteName = obj:getSprite() and obj:getSprite():getName() or ""
     
+    -- Lowercase for comparison
+    local lowerName = string.lower(objectName)
+    local lowerSprite = string.lower(spriteName)
+    
     -- Check for transparent/see-through objects
     local transparentKeywords = {
-        "chainlink", "chain link", "wire", "metal fence", "fence metal",
-        "window", "glass", "bars", "iron bars", "railing"
+        "chainlink", "chain link", "chain_link", "chainlink fence",
+        "wire", "wire fence", "metal fence", "fence metal", "metal_fence",
+        "window", "glass", "bars", "iron bars", "iron_bars", "metal bars",
+        "railing", "rail", "mesh", "lattice", "grid"
     }
     
     for _, keyword in ipairs(transparentKeywords) do
-        if string.find(string.lower(objectName), keyword) or 
-           string.find(string.lower(spriteName), keyword) then
+        if string.find(lowerName, keyword, 1, true) or 
+           string.find(lowerSprite, keyword, 1, true) then
             return false  -- Transparent
         end
+    end
+    
+    -- Also check sprite name for fencing patterns that are see-through
+    if string.find(lowerSprite, "fencing") and (
+       string.find(lowerSprite, "metal") or 
+       string.find(lowerSprite, "wire") or
+       string.find(lowerSprite, "chain")) then
+        return false  -- Metal/wire/chain fencing is transparent
     end
     
     -- Opaque by default (wooden fences, walls, doors, etc.)
@@ -178,24 +192,58 @@ function SpawnChunk.checkZombieAttacking(closestZombie, data)
         -- Track health over time to detect actual damage
         local damageDealt = false
         if targetHealth then
+            -- Initialize tracking on first detection
             if not data.lastAttackTargetHealth then
                 data.lastAttackTargetHealth = targetHealth
                 data.damageThisCycle = false
+                
+                -- Start damage timer (in-game time)
+                local gameTime = getGameTime()
+                data.attackStartTime = gameTime:getWorldAgeHours() * 60  -- In-game minutes
+                data.initialAttackTargetHealth = targetHealth
+                print(string.format("[%s] Started tracking damage on %s (health: %.0f)", 
+                    username, targetName, targetHealth))
             elseif targetHealth < data.lastAttackTargetHealth then
                 -- Health decreased = actual damage!
                 damageDealt = true
                 data.damageThisCycle = true
                 local damageTaken = data.lastAttackTargetHealth - targetHealth
                 data.lastAttackTargetHealth = targetHealth
+                
+                -- Reset damage timer (structure IS taking damage)
+                local gameTime = getGameTime()
+                data.attackStartTime = gameTime:getWorldAgeHours() * 60
+                
                 print(string.format("[%s] ⚔ DAMAGE DEALT! %s took %.1f damage (%.0f / %.0f remaining)", 
                     username, targetName, damageTaken, targetHealth, targetMaxHealth or 0))
             else
-                -- Health same or increased (shouldn't happen), no damage this cycle
+                -- Health same = no damage this cycle
                 data.damageThisCycle = false
+                
+                -- Check if zombie has been attacking with NO damage for too long
+                if data.attackStartTime then
+                    local gameTime = getGameTime()
+                    local currentMinutes = gameTime:getWorldAgeHours() * 60
+                    local attackDuration = currentMinutes - data.attackStartTime  -- In-game minutes
+                    
+                    local INDESTRUCTIBLE_THRESHOLD = 60  -- 1 in-game hour without damage
+                    
+                    if attackDuration >= INDESTRUCTIBLE_THRESHOLD then
+                        -- Zombie has been attacking for 1+ hours with NO damage
+                        -- Mark as effectively indestructible
+                        print(string.format("[%s] ⚠️ Structure appears INDESTRUCTIBLE: No damage after %.0f in-game minutes", 
+                            username, attackDuration))
+                        
+                        -- Force treat as indestructible (no health data)
+                        data.damageThisCycle = nil  -- Unknown/indestructible
+                        data.attackTargetFunctionallyIndestructible = true
+                    end
+                end
             end
         else
-            -- No health info available
+            -- No health info available = truly indestructible
             data.damageThisCycle = nil  -- Unknown
+            data.attackTargetFunctionallyIndestructible = true
         end
         
         -- Log attack detection (only log periodically to avoid spam)
@@ -208,7 +256,7 @@ function SpawnChunk.checkZombieAttacking(closestZombie, data)
                 data.damageThisCycle == true and "YES" or (data.damageThisCycle == false and "NO" or "UNKNOWN")))
         end
     else
-        -- No attack target, clear attack data
+        -- No attack target, clear all attack data including tracking
         data.attackTargetName = nil
         data.attackTargetHealth = nil
         data.attackTargetMaxHealth = nil
@@ -217,6 +265,9 @@ function SpawnChunk.checkZombieAttacking(closestZombie, data)
         data.damageThisCycle = nil
         data.attackLogCounter = 0
         data.zombieAttackingStructure = false
+        data.attackStartTime = nil
+        data.initialAttackTargetHealth = nil
+        data.attackTargetFunctionallyIndestructible = nil
     end
 end
 
@@ -464,10 +515,16 @@ function SpawnChunk.ensureMinimumZombies()
         elseif zombieAttackingStructure and data.damageThisCycle == true then
             -- Zombie is attacking AND actually dealing damage = making progress
             zombieMakingProgress = true
-        elseif zombieAttackingStructure and data.damageThisCycle == nil then
-            -- Zombie attacking but no health data (indestructible structure) = STUCK!
-            -- Don't count as progress
-            print(string.format("[%s] Zombie attacking indestructible structure (no damage possible)", username))
+        elseif zombieAttackingStructure and (data.damageThisCycle == nil or data.attackTargetFunctionallyIndestructible) then
+            -- Zombie attacking but:
+            -- - No health data (truly indestructible), OR
+            -- - No damage after 1 in-game hour (functionally indestructible)
+            -- = STUCK!
+            if data.attackTargetFunctionallyIndestructible then
+                print(string.format("[%s] Zombie attacking functionally indestructible structure (no damage after 1 hour)", username))
+            else
+                print(string.format("[%s] Zombie attacking indestructible structure (no health data)", username))
+            end
         end
         
         if not zombieMakingProgress then
