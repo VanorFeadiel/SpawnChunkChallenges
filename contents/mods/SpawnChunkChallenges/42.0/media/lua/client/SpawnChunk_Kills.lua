@@ -121,7 +121,7 @@ function SpawnChunk.onChunkComplete(chunkKey)
     -- Give reward items
     local inv = pl:getInventory()
     inv:AddItem("Base.WaterBottleFull")
-    inv:AddItem("Base.Bandage")
+    --inv:AddItem("Base.Bandage")  --commented out for now keep in code as extra example.
     
     -- Get adjacent chunks
     local adjacentChunks = SpawnChunk.getAdjacentChunks(chunkKey)
@@ -147,25 +147,50 @@ function SpawnChunk.onChunkComplete(chunkKey)
                 newChunk = SpawnChunk.unlockChunk(adjacentKey)
             end
             
-            -- Calculate kill target for new chunk (same formula as initial chunk)
-            local cell = getCell()
-            local zombieList = cell and cell:getZombieList()
-            local totalZombies = zombieList and zombieList:size() or 100
-            local baseTarget = math.floor(totalZombies / 9)
+            -- Initialize chunk data based on challenge type
+            if data.challengeType == "Purge" then
+                -- PURGE CHALLENGE: Calculate kill target for new chunk
+                local cell = getCell()
+                local zombieList = cell and cell:getZombieList()
+                local totalZombies = zombieList and zombieList:size() or 100
+                local baseTarget = math.floor(totalZombies / 9)
+                
+                local boundarySize = data.boundarySize
+                local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1)
+                local baselineArea = 101 * 101
+                local areaMultiplier = boundaryArea / baselineArea
+                
+                local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
+                local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
+                if target < 5 then target = 5 end
+                
+                newChunk.killTarget = target
+                newChunk.killCount = 0
+                
+                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Kill target: " .. target)
+                
+            elseif data.challengeType == "Time" then
+                -- TIME CHALLENGE: Set time target for new chunk
+                newChunk.timeHours = 0
+                newChunk.timeTarget = data.timeTarget or 12
+                
+                -- Set kill fields to 0 (not used, but kept for compatibility)
+                newChunk.killTarget = 0
+                newChunk.killCount = 0
+                
+                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Time target: " .. newChunk.timeTarget .. " hours")
+                
+            elseif data.challengeType == "ZeroToHero" then
+                -- ZERO TO HERO: Uses banking system, doesn't need per-chunk tracking
+                -- Set fields to 0 for compatibility
+                newChunk.killTarget = 0
+                newChunk.killCount = 0
+                newChunk.timeHours = 0
+                newChunk.timeTarget = 0
+                
+                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Zero to Hero (banking)")
+            end
             
-            local boundarySize = data.boundarySize
-            local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1)
-            local baselineArea = 101 * 101
-            local areaMultiplier = boundaryArea / baselineArea
-            
-            local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
-            local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
-            if target < 5 then target = 5 end
-            
-            newChunk.killTarget = target
-            newChunk.killCount = 0
-            
-            print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") with target: " .. target)
             newChunksUnlocked = newChunksUnlocked + 1
         end
     end

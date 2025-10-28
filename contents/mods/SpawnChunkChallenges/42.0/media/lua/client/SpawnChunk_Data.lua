@@ -188,9 +188,13 @@ function SpawnChunk.initChunk(chunkKey, unlocked, completed)
         data.chunks[chunkKey] = {
             unlocked = unlocked or false,
             completed = completed or false,
-            available = false,  -- New state: can be unlocked by entering
+            available = false,
             killCount = 0,
-            killTarget = 10,  -- Will be recalculated on unlock
+            killTarget = 10,
+            
+            -- TIME CHALLENGE: Per-chunk time tracking
+            timeHours = 0,
+            timeTarget = data.timeTarget or 12,  -- Inherit from global setting
         }
     end
     

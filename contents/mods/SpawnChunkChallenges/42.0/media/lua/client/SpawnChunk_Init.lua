@@ -80,11 +80,31 @@ function SpawnChunk.initialize()
         end
     end
     
-    -- Calculate kill target based on cell zombie population and boundary area
-    local cell = getCell()
-    local zombieList = cell and cell:getZombieList()
-    local totalZombies = zombieList and zombieList:size() or 100
-    local baseTarget = math.floor(totalZombies / 9)
+-- Initialize based on mode
+if chunkModeEnabled then
+    -- CHUNK MODE: Initialize first chunk (chunk_0_0)
+    data.currentChunk = "chunk_0_0"
+    data.chunks = {}
+    
+    local firstChunk = SpawnChunk.initChunk("chunk_0_0", true, false)
+    
+    -- Set challenge-specific targets
+    if challengeType == "Purge" then
+        local cell = getCell()
+        local zombieList = cell and cell:getZombieList()
+        local totalZombies = zombieList and zombieList:size() or 100
+        local baseTarget = math.floor(totalZombies / 9)
+        
+        -- ... rest of kill target calculation ...
+        firstChunk.killTarget = target
+        firstChunk.killCount = 0
+    elseif challengeType == "Time" then
+        firstChunk.timeHours = 0
+        firstChunk.timeTarget = data.timeTarget
+    elseif challengeType == "ZeroToHero" then
+        firstChunk.killTarget = 0
+        firstChunk.killCount = 0
+    end
     
     -- Scale target based on boundary area (50x50 = 2500 tiles is baseline)
     local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
