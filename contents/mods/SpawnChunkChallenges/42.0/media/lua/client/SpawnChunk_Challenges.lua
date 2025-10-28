@@ -35,14 +35,39 @@ function SpawnChunk.isChunkCompleted()
         
     elseif challengeType == "ZeroToHero" then
         -- Zero to Hero: Skills at level 10
-        -- Check if all skills (Aiming, Fitness, Strength, Sprinting, Lightfoot, Sneak) are at 10
+        -- AUTO-DETECT: Check all tracked skills (including modded skills)
         local pl = getPlayer()
         if not pl then return false end
         
-        local allMaxed = true
-        local requiredSkills = {"Aiming", "Fitness", "Strength", "Sprinting", "Lightfoot", "Sneak"}
+        -- Get all tracked skills from lastSkillLevels
+        local trackedSkills = {}
+        if data.lastSkillLevels then
+            for skillName, _ in pairs(data.lastSkillLevels) do
+                table.insert(trackedSkills, skillName)
+            end
+        end
         
-        for _, skillName in ipairs(requiredSkills) do
+        -- If no tracked skills yet, get all player perks
+        if #trackedSkills == 0 then
+            local perkList = pl:getPerks()
+            if perkList then
+                for i = 0, perkList:size() - 1 do
+                    local perk = perkList:get(i)
+                    if perk then
+                        local perkType = perk:getType()
+                        local skillName = perkType:toString()
+                        local level = pl:getPerkLevel(perkType)
+                        if level > 0 then
+                            table.insert(trackedSkills, skillName)
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Check if all tracked skills are at level 10
+        local allMaxed = true
+        for _, skillName in ipairs(trackedSkills) do
             local perk = Perks.FromString(skillName)
             if perk then
                 local skillLevel = pl:getPerkLevel(perk)
@@ -87,18 +112,40 @@ function SpawnChunk.getChallengeProgressText()
         
     elseif challengeType == "ZeroToHero" then
         local skillProgress = ""
-        local requiredSkills = {"Aiming", "Fitness", "Strength", "Sprinting", "Lightfoot", "Sneak"}
         local pl = getPlayer()
         
         if pl then
+            -- AUTO-DETECT: Get all perks from the player (includes modded skills)
+            local perkList = pl:getPerks()
             local skillTexts = {}
-            for _, skillName in ipairs(requiredSkills) do
-                local perk = Perks.FromString(skillName)
-                if perk then
-                    local level = pl:getPerkLevel(perk)
-                    table.insert(skillTexts, skillName .. ": " .. level .. "/10")
+            local trackedSkills = {}
+            
+            if perkList then
+                for i = 0, perkList:size() - 1 do
+                    local perk = perkList:get(i)
+                    if perk then
+                        local perkType = perk:getType()
+                        local skillName = perkType:toString()
+                        local level = pl:getPerkLevel(perkType)
+                        
+                        -- Only show skills that have at least 1 level (not level 0)
+                        if level > 0 then
+                            table.insert(trackedSkills, skillName)
+                            table.insert(skillTexts, skillName .. ": " .. level .. "/10")
+                        end
+                    end
                 end
             end
+            
+            -- Update lastSkillLevels to include newly discovered skills
+            data.lastSkillLevels = data.lastSkillLevels or {}
+            for _, skillName in ipairs(trackedSkills) do
+                local perk = Perks.FromString(skillName)
+                if perk then
+                    data.lastSkillLevels[skillName] = pl:getPerkLevel(perk)
+                end
+            end
+            
             skillProgress = table.concat(skillTexts, ", ")
         end
         
@@ -142,18 +189,22 @@ function SpawnChunk.updateSkillProgress()
     local pl = getPlayer()
     if not pl then return end
     
-    local requiredSkills = {"Aiming", "Fitness", "Strength", "Sprinting", "Lightfoot", "Sneak"}
-    
     -- Initialize skill tracking
     data.lastSkillLevels = data.lastSkillLevels or {}
     
-    for _, skillName in ipairs(requiredSkills) do
-        local perk = Perks.FromString(skillName)
+    -- AUTO-DETECT: Get all perks from player (includes modded skills)
+    local perkList = pl:getPerks()
+    if not perkList then return end
+    
+    for i = 0, perkList:size() - 1 do
+        local perk = perkList:get(i)
         if perk then
-            local currentLevel = pl:getPerkLevel(perk)
+            local perkType = perk:getType()
+            local skillName = perkType:toString()
+            local currentLevel = pl:getPerkLevel(perkType)
             local lastLevel = data.lastSkillLevels[skillName] or 0
             
-            -- Check if skill leveled up
+            -- Check if skill leveled up (including 0 to 1)
             if currentLevel > lastLevel then
                 -- Add to pending unlocks queue
                 data.pendingSkillUnlocks = data.pendingSkillUnlocks or {}

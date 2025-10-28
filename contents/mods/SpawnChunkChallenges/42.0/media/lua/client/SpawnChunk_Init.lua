@@ -61,14 +61,20 @@ function SpawnChunk.initialize()
         data.completedSkills = {}
         data.lastSkillLevels = {}
         
-        -- Initialize all required skills
-        local requiredSkills = {"Aiming", "Fitness", "Strength", "Sprinting", "Lightfoot", "Sneak"}
+        -- AUTO-DETECT: Initialize baseline for ALL skills (including level 0)
         local pl = getPlayer()
         if pl then
-            for _, skillName in ipairs(requiredSkills) do
-                local perk = Perks.FromString(skillName)
-                if perk then
-                    data.lastSkillLevels[skillName] = pl:getPerkLevel(perk)
+            local perkList = pl:getPerks()
+            if perkList then
+                for i = 0, perkList:size() - 1 do
+                    local perk = perkList:get(i)
+                    if perk then
+                        local perkType = perk:getType()
+                        local skillName = perkType:toString()
+                        local level = pl:getPerkLevel(perkType)
+                        -- Track ALL skills, even level 0 (establishes baseline for detection)
+                        data.lastSkillLevels[skillName] = level
+                    end
                 end
             end
         end
