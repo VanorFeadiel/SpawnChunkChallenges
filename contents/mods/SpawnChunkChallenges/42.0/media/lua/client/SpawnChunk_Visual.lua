@@ -561,7 +561,7 @@ function SpawnChunkHUD:render()
     
     -- Draw progress based on mode
     local progressText
-    local statusLine = contentYOffset + 5  -- Line for status messages
+    local currentY = contentYOffset + 5  -- Track current Y position for drawing
     local chunkCompleted = false
     
     if data.chunkMode then
@@ -575,17 +575,19 @@ function SpawnChunkHUD:render()
             -- Player is in an unlocked chunk
             if playerChunkData.completed then
                 progressText = "Chunk " .. playerChunkKey .. " Complete!"
-                self:drawText(progressText, 10, contentYOffset + 5, 0, 1, 0, 1, UIFont.Medium)
+                self:drawText(progressText, 10, currentY, 0, 1, 0, 1, UIFont.Medium)
                 chunkCompleted = true
             else
                 progressText = "Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget
-                self:drawText(progressText, 10, contentYOffset + 5, 1, 1, 1, 1, UIFont.Medium)
+                self:drawText(progressText, 10, currentY, 1, 1, 1, 1, UIFont.Medium)
             end
         else
             -- Player is in a locked or invalid chunk
             progressText = "In locked chunk: " .. playerChunkKey
-            self:drawText(progressText, 10, contentYOffset + 5, 1, 0.5, 0.5, 1, UIFont.Medium)
+            self:drawText(progressText, 10, currentY, 1, 0.5, 0.5, 1, UIFont.Medium)
         end
+        
+        currentY = currentY + 25  -- Move down for next line
         
         -- Show spawn delay status or paused status
         local spawnDelayActive = false
@@ -602,42 +604,31 @@ function SpawnChunkHUD:render()
         
         if chunkCompleted then
             -- Show spawning paused message
-            self:drawText("⏸ Spawning PAUSED - Enter new chunk to continue", 10, statusLine, 1, 1, 0, 1, UIFont.Small)
-            statusLine = statusLine + 20
+            self:drawText("⏸ Spawning PAUSED - Enter new chunk to continue", 10, currentY, 1, 1, 0, 1, UIFont.Small)
+            currentY = currentY + 20
         elseif spawnDelayActive then
             local delayText = string.format("⏳ Spawn Delay: %d in-game min remaining", remainingMinutes)
-            self:drawText(delayText, 10, statusLine, 0.5, 1, 1, 1, UIFont.Small)
-            statusLine = statusLine + 20
+            self:drawText(delayText, 10, currentY, 0.5, 1, 1, 1, UIFont.Small)
+            currentY = currentY + 20
         end
         
         -- Show unlocked chunks count
         local unlockedCount = #SpawnChunk.getUnlockedChunks()
         local chunksText = "Unlocked Chunks: " .. unlockedCount
-        self:drawText(chunksText, 10, statusLine + 5, 0.7, 1, 0.7, 1, UIFont.Small)
+        self:drawText(chunksText, 10, currentY, 0.7, 1, 0.7, 1, UIFont.Small)
+        currentY = currentY + 20
     else
         if data.isComplete then
-            self:drawText("Challenge Complete!", 10, contentYOffset + 5, 0, 1, 0, 1, UIFont.Medium)
+            self:drawText("Challenge Complete!", 10, currentY, 0, 1, 0, 1, UIFont.Medium)
             return
         end
         progressText = "Kills: " .. data.killCount .. " / " .. data.killTarget
-        self:drawText(progressText, 10, contentYOffset + 5, 1, 1, 1, 1, UIFont.Medium)
+        self:drawText(progressText, 10, currentY, 1, 1, 1, 1, UIFont.Medium)
+        currentY = currentY + 25
     end
     
     -- Draw distance to boundary
-    -- Note: spawnDelayActive and chunkCompleted already calculated above
-    local yOffset = contentYOffset + (data.chunkMode and 30 or 20)  -- Adjust for extra line in chunk mode
-    
-    -- Check if we need extra space (recalculate for non-chunk mode)
-    local needsExtraSpace = chunkCompleted
-    if not data.chunkMode and data.spawnDelayUntil then
-        local gameTime = getGameTime()
-        local currentMinutes = gameTime:getWorldAgeHours() * 60
-        needsExtraSpace = currentMinutes < data.spawnDelayUntil
-    end
-    
-    if needsExtraSpace then
-        yOffset = yOffset + 20  -- Extra space for status messages
-    end
+    local yOffset = currentY
     
     -- Calculate distance to boundary of all allowed chunks
     local distToBoundary = SpawnChunk.getDistanceToAllowedBoundary(pl:getX(), pl:getY())
@@ -645,6 +636,9 @@ function SpawnChunkHUD:render()
     local distText = "Distance to boundary: " .. math.floor(distToBoundary) .. " tiles"
     local color = distToBoundary < 10 and {r=1, g=0, b=0} or {r=1, g=1, b=1}
     self:drawText(distText, 10, yOffset, color.r, color.g, color.b, 1, UIFont.Small)
+    
+    -- Update currentY to track position for debug info
+    currentY = yOffset + 20
     
     -- Debug information (only if debug mode is enabled)
     local debugMode = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.DebugMode) or false
@@ -688,7 +682,7 @@ function SpawnChunkHUD:render()
         end
         
         -- Debug info with spawn/sound tracking
-        local yPos = contentYOffset + (data.chunkMode and 55 or 40)
+        local yPos = currentY
         self:drawText("=== DEBUG INFO ===", 10, yPos, 1, 1, 0, 1, UIFont.Small)
         yPos = yPos + 15
         
@@ -1077,8 +1071,8 @@ local function createHUD()
     local data = SpawnChunk.getData()
     
     -- Use saved position/size or defaults
-    local x = data.hudWindowX or 200
-    local y = data.hudWindowY or 50
+    local x = data.hudWindowX or 180
+    local y = data.hudWindowY or 30
     local width = data.hudWindowWidth or 450
     local height = data.hudWindowHeight or 500
     
@@ -1107,31 +1101,29 @@ function SpawnChunk.toggleHUD()
     end
 end
 
--- Register keybinding for HUD toggle
-local function registerHUDKeyBinding()
-    if keyBinding then
-        local hudBind = {}
-        hudBind.value = "[SpawnChunk]ToggleHUD"
-        hudBind.key = 0  -- Unassigned by default - player can set in key options
-        table.insert(keyBinding, hudBind)
-    end
-end
+-- Register keybinding for HUD toggle immediately when file loads (following eggonsHotkeys pattern)
+-- Add section header
+local mybind = {}
+mybind.value = "[SpawnChunk]"
+table.insert(keyBinding, mybind)
+
+-- Add toggle HUD keybinding
+mybind = {}
+mybind.value = "ToggleHUD"  -- Simple key name (will show in [SpawnChunk] section)
+mybind.key = 51  -- Default: comma (,) key - from Project Zomboid key code reference
+table.insert(keyBinding, mybind)
 
 -- Simple hotkey handler for HUD toggle
-Events.OnKeyPressed.Add(function(key)
+-- Use OnCustomUIKey which is specifically for custom keybindings
+Events.OnCustomUIKey.Add(function(key)
     local player = getPlayer()
     if not player then return end
     
-    -- Check if this is our custom keybinding
-    local isHUDToggle = getCore():getKey("SpawnChunk.ToggleHUD")
-    if key == isHUDToggle then
+    -- Check if this is our toggle HUD keybinding
+    local hudToggleKey = getCore():getKey("ToggleHUD")
+    if tonumber(key) == tonumber(hudToggleKey) then
         SpawnChunk.toggleHUD()
     end
-end)
-
--- Register on game start
-Events.OnGameStart.Add(function()
-    registerHUDKeyBinding()
 end)
 
 Events.OnGameStart.Add(function()

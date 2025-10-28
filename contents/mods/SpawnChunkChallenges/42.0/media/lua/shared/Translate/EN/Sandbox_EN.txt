@@ -12,4 +12,7 @@ Sandbox_EN = {
     Sandbox_SpawnChunkChallenge_EnableChunkMode = "Enable Additive Chunk Mode",
     Sandbox_SpawnChunkChallenge_ChunkUnlockPattern = "Chunk Unlock Pattern (1=Choose Direction, 2=Unlock All Adjacent)",
     Sandbox_SpawnChunkChallenge_NewChunkSpawnDelay = "Spawn Delay After Entering New Chunk (in-game minutes, 0-1440)",
+    Sandbox_SpawnChunkChallenge_ChallengeType = "Challenge Type (1=Purge, 2=Time, 3=Zero to Hero)",
+    Sandbox_SpawnChunkChallenge_TimeChallengeDuration = "Time Challenge Duration (in-game hours, 1-720, default: 12)",
+    Sandbox_SpawnChunkChallenge_TimeInAnyChunk = "Time Challenge: Count time in any unlocked chunk",
 }

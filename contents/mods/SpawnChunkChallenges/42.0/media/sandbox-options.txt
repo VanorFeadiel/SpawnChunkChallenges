@@ -97,3 +97,31 @@ option SpawnChunkChallenge.NewChunkSpawnDelay
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_NewChunkSpawnDelay,
 }
+
+option SpawnChunkChallenge.ChallengeType
+{
+    type = integer,
+    min = 1,
+    max = 3,
+    default = 1,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_ChallengeType,
+}
+
+option SpawnChunkChallenge.TimeChallengeDuration
+{
+    type = integer,
+    min = 1,
+    max = 720,
+    default = 12,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_TimeChallengeDuration,
+}
+
+option SpawnChunkChallenge.TimeInAnyChunk
+{
+    type = boolean,
+    default = false,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_TimeInAnyChunk,
+}

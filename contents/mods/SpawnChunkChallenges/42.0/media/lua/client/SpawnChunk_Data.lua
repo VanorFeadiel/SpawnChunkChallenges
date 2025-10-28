@@ -5,7 +5,7 @@
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.1.040"
+SpawnChunk.MOD_VERSION = "0.3.1.045"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 
@@ -41,6 +41,18 @@ function SpawnChunk.getData()
         killTarget = 10,
         isComplete = false,
         
+        -- CHALLENGE TYPE SYSTEM (NEW)
+        challengeType = "Purge",  -- "Purge", "Time", or "ZeroToHero"
+        
+        -- TIME CHALLENGE DATA (for Time challenge)
+        timeHours = 0,            -- Time spent in chunk (in-game hours)
+        timeTarget = 12,          -- Target time in hours (default 12 hours)
+        timeInAnyChunk = false,   -- If true, time counts in any chunk. If false, only in new chunk.
+        
+        -- ZERO TO HERO DATA (for Zero to Hero challenge)
+        pendingSkillUnlocks = {}, -- Queue of skill levels waiting to unlock chunks: [{skill="Aiming", level=5}, {skill="Fitness", level=3}]
+        completedSkills = {},     -- Skills that have reached level 10: ["Aiming", "Fitness", ...]
+        
         -- ADDITIVE CHUNKS DATA (new)
         chunks = {},                -- Dictionary of chunk data: ["chunk_0_0"] = {unlocked, completed, killCount, killTarget}
         currentChunk = "chunk_0_0", -- Key of the active chunk
@@ -61,8 +73,8 @@ function SpawnChunk.getData()
         challengeStuckFlag = false,     -- True if all 4 directions have stuck zombies
         
         -- HUD window state (persistent)
-        hudWindowX = 200,               -- Window X position
-        hudWindowY = 50,                -- Window Y position
+        hudWindowX = 180,               -- Window X position
+        hudWindowY = 30,                -- Window Y position
         hudWindowWidth = 450,           -- Window width
         hudWindowHeight = 500,          -- Window height
         hudMinimized = false,           -- Whether window is minimized
