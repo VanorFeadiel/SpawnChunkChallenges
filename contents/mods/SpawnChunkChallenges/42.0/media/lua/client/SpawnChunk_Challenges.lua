@@ -168,17 +168,44 @@ function SpawnChunk.updateTimeProgress()
     local pl = getPlayer()
     if not pl then return end
     
-    -- Get time survived in-game (already tracked by the game)
-    local hoursSurvived = pl:getHoursSurvived()
+    -- Check if we should count time based on TimeInAnyChunk setting
+    local timeInAnyChunk = data.timeInAnyChunk or false
     
-    -- Store the last checked value to detect increases
-    data.lastHoursChecked = data.lastHoursChecked or 0
-    
-    -- If time has increased, update the challenge time
-    if hoursSurvived > data.lastHoursChecked then
-        data.timeHours = (data.timeHours or 0) + (hoursSurvived - data.lastHoursChecked)
-        data.lastHoursChecked = hoursSurvived
+    if timeInAnyChunk then
+        -- Count time in ANY unlocked chunk
+        local playerX = math.floor(pl:getX())
+        local playerY = math.floor(pl:getY())
+        local playerChunkKey = SpawnChunk.getChunkKeyFromPosition(playerX, playerY, data)
+        local playerChunkData = data.chunks and data.chunks[playerChunkKey]
+        
+        -- Only count if player is in an unlocked chunk
+        if not (playerChunkData and playerChunkData.unlocked) then
+            return  -- Player not in unlocked chunk, don't count time
+        end
+    else
+        -- Only count time in NEW (incomplete) chunks
+        local playerX = math.floor(pl:getX())
+        local playerY = math.floor(pl:getY())
+        local playerChunkKey = SpawnChunk.getChunkKeyFromPosition(playerX, playerY, data)
+        local playerChunkData = data.chunks and data.chunks[playerChunkKey]
+        
+        -- Only count if player is in current chunk AND it's not completed
+        if not (playerChunkData and playerChunkData.unlocked and not playerChunkData.completed) then
+            return  -- Player not in valid chunk, don't count time
+        end
     end
+    
+    -- Use real-time delta instead of getHoursSurvived()
+    -- This requires tracking last tick time and calculating elapsed time per tick
+    local gameTime = getGameTime()
+    local currentMinutes = gameTime:getWorldAgeHours() * 60
+    
+    data.lastTimeCheck = data.lastTimeCheck or currentMinutes
+    local elapsedMinutes = currentMinutes - data.lastTimeCheck
+    data.lastTimeCheck = currentMinutes
+    
+    -- Add elapsed time (convert minutes to hours)
+    data.timeHours = (data.timeHours or 0) + (elapsedMinutes / 60)
 end
 
 -- Track skill progression for Zero to Hero Challenge
