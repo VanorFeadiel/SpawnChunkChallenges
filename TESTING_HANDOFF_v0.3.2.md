@@ -12,7 +12,7 @@ Three challenge types that can be selected via sandbox options:
 
 1. **Purge Challenge** (Default) - Kill zombies to unlock chunks
 2. **Time Challenge** - Survive X in-game hours to unlock chunks  
-3. **Zero to Hero** - Level up skills to unlock chunks, all 6 at level 10 = victory
+3. **Zero to Hero** - Level up skills to unlock chunks, ALL detected skills at level 10 = victory (auto-detects vanilla + modded skills)
 
 ---
 
@@ -40,11 +40,15 @@ Three challenge types that can be selected via sandbox options:
    - Chunk unlocks when time reached
 
 3. **Zero to Hero** (Challenge Type = 3)
-   - Level up a skill (e.g., Aiming)
-   - Verify skill level-up is banked
+   - **Important**: Initialization captures baseline for ALL skills (including level 0)
+   - Pre-existing skills (e.g., spawn with Fitness 5) don't give initial unlocks
+   - Only NEW level-ups from baseline count (Fitness 5→6 = 1 unlock)
+   - Going from 0→1 also triggers unlock (Cooking 0→1 = 1 unlock)
+   - Auto-detects ALL skills including modded ones (dynamic detection)
+   - Each skill level-up banks one chunk unlock
    - Enter available chunk - should consume 1 banked unlock
-   - HUD shows skill progress + banked count
-   - All 6 skills at level 10 = victory + boundaries removed
+   - HUD shows only skills with level > 0 (clean display)
+   - ALL tracked skills at level 10 = victory + boundaries removed
 
 ### Cross-Save Testing
 - Create 3 different save files with different challenge types
@@ -90,6 +94,8 @@ Three challenge types that can be selected via sandbox options:
 - Check: `updateSkillProgress()` being called in OnTick
 - Check: `pendingSkillUnlocks` array being populated
 - Check: Skill level detection working correctly
+- **Note**: System captures ALL skills at initialization (including level 0) for baseline
+- Only NEW level-ups from baseline count (pre-existing skills don't give initial unlocks)
 
 **Issue: Chunk not unlocking (Zero to Hero)**
 - Check: Has `pendingSkillUnlocks` items?
@@ -141,8 +147,13 @@ When testing, use these sandbox settings:
 1. Does Time Challenge properly track in-game hours?
 2. Does skill banking work correctly when leveling multiple skills?
 3. Does chunk unlock consume banked skills properly?
-4. Does all 6 skills at level 10 remove boundaries correctly?
+4. Do all tracked skills at level 10 remove boundaries correctly?
 5. Can we switch between different challenge types in different saves?
+6. **Zero to Hero specific**:
+   - Does pre-existing skill baseline work (spawn with skills, no initial unlocks)?
+   - Does 0→1 skill up trigger unlock correctly?
+   - Are modded skills auto-detected and tracked?
+   - Does HUD only show skills with level > 0 (not cluttered)?
 
 ---
 
