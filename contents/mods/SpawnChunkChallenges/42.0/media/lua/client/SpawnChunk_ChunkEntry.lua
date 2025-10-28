@@ -32,10 +32,22 @@ function SpawnChunk.checkChunkEntry()
     local playerChunkData = data.chunks and data.chunks[playerChunkKey]
     if not playerChunkData then return end
     
-    -- If chunk is available but not unlocked, unlock it now (player entered it)
+    -- If chunk is available but not unlocked, check if we can unlock it
     if playerChunkData.available and not playerChunkData.unlocked then
-        print("[" .. username .. "] Player entered available chunk: " .. playerChunkKey .. " - Auto-unlocking!")
-        SpawnChunk.unlockChunk(playerChunkKey)
+        -- ZERO TO HERO CHALLENGE: Check if we have banked skill unlocks to use
+        if data.challengeType == "ZeroToHero" and data.pendingSkillUnlocks and #data.pendingSkillUnlocks > 0 then
+            -- Use a banked skill unlock
+            SpawnChunk.useSkillUnlock(playerChunkKey)
+            print("[" .. username .. "] Player entered available chunk: " .. playerChunkKey .. " - Using banked skill unlock!")
+            SpawnChunk.unlockChunk(playerChunkKey)
+        elseif data.challengeType ~= "ZeroToHero" then
+            -- PURGE/TIME challenges: Auto-unlock when entering
+            print("[" .. username .. "] Player entered available chunk: " .. playerChunkKey .. " - Auto-unlocking!")
+            SpawnChunk.unlockChunk(playerChunkKey)
+        else
+            -- Zero to Hero but no banked unlocks - don't unlock yet
+            return
+        end
         
         -- Update current chunk
         data.currentChunk = playerChunkKey

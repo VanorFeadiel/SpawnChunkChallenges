@@ -10,6 +10,11 @@ function SpawnChunk.isInBounds(x, y)
     local data = SpawnChunk.getData()
     if not data.isInitialized then return true end
     
+    -- Zero to Hero: If all skills at level 10, no boundaries!
+    if data.challengeType == "ZeroToHero" and data.isComplete then
+        return true
+    end
+    
     -- In chunk mode, check if position is within ANY unlocked or available chunk
     if data.chunkMode then
         local unlockedChunks = SpawnChunk.getUnlockedChunks()

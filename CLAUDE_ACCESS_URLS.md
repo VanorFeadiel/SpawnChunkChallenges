@@ -32,17 +32,20 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 - **English Translation**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/Translate/EN/Sandbox_EN.txt
 
 ### Documentation
+- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md
 - **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md
 - **Template for Cursor**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/CURSOR_CHAT_TEMPLATE.md
 ### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
 
 **Use these RAW URLs (Claude can access these):**
 - **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Boundary.lua
+- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua (NEW - Challenge system)
+- **SpawnChunk_ChunkEntry.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_ChunkEntry.lua
 - **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Data.lua
 - **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Init.lua
 - **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Kills.lua
-- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua
 - **SpawnChunk_Spawner.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Spawner.lua
+- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua
 
 ### Development Automation Scripts
 - **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh
@@ -139,5 +142,83 @@ The repository includes automation scripts to streamline the development workflo
 - **review-template.txt** - Template messages for requesting code reviews from Claude
 
 ## Last Updated
-2025-10-19
-2025-10-19
+2025-01-15 (Current: v0.3.2.002 - Challenge System Implementation)
+
+## Current Development Status
+
+### ✅ Completed Features
+- **Purge Challenge** (Kill zombies to unlock chunks) - Fully functional
+- HUD toggle hotkey (comma ',' key)
+- Character-specific data and visual isolation
+- Boundary enforcement with visual markers
+- Additive chunk mode with progression system
+- Debug mode with comprehensive stats
+
+### 🔄 In Progress - Challenge System (v0.3.2)
+**Goal**: Add Time Challenge and Zero to Hero Challenge alongside existing Purge Challenge
+
+**Current Status**:
+- ✅ Data structure created for Time and Zero to Hero challenges
+- ✅ Sandbox options added for challenge type selection
+- ✅ Challenge tracking functions created in `SpawnChunk_Challenges.lua`
+- ⏳ Implementation in progress (Time Challenge first)
+
+### 🎯 Challenge System Overview
+
+#### 1. Purge Challenge (Current/Default)
+- **Objective**: Kill zombies to unlock chunks
+- **Mechanic**: Classic zombie kill counting per chunk
+- **Target**: Based on zombie population in area
+
+#### 2. Time Challenge (Next to Implement)
+- **Objective**: Survive for X in-game hours to unlock chunks
+- **Settings**:
+  - Duration: 1-720 in-game hours (default: 12)
+  - Option: Count time in ANY unlocked chunk OR only in NEW chunk
+- **Implementation Tasks**:
+  - Initialize challenge type from sandbox
+  - Call `updateTimeProgress()` on game ticks
+  - Track completion and unlock logic
+  - Update HUD to show time progress
+
+#### 3. Zero to Hero Challenge (After Time)
+- **Objective**: Level up skills to unlock chunks
+- **Skills Required**: Aiming, Fitness, Strength, Sprinting, Lightfoot, Sneak
+- **Mechanic**: 
+  - Each skill level up banks one chunk unlock
+  - Multiple skill ups before entering new chunk = multiple unlocks stored
+  - All 6 skills at level 10 = free exploration (boundaries removed)
+- **Implementation Tasks**:
+  - Call `updateSkillProgress()` on game ticks
+  - Track skill level ups
+  - Handle pending unlocks queue
+  - Process skill unlocks when entering new chunk
+
+### 📋 Files Modified/Added in Current Session
+
+**New Files**:
+- `contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua` - Challenge tracking system
+
+**Modified Files**:
+- `contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Data.lua` - Added challenge type data structures
+- `contents/mods/SpawnChunkChallenges/42.0/media/sandbox-options.txt` - Added ChallengeType, TimeChallengeDuration, TimeInAnyChunk
+- `contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/Translate/EN/Sandbox_EN.txt` - Added translations
+- `contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua` - HUD toggle hotkey (comma key, code 51)
+- `contents/mods/SpawnChunkChallenges/42.0/mod.info` - Updated version to 0.3.2.002
+
+**Next Files to Update**:
+- `SpawnChunk_Init.lua` - Set challengeType from sandbox options on initialization
+- `SpawnChunk_Visual.lua` - Add event handlers to call time/skill update functions and show challenge-specific HUD
+- `SpawnChunk_Challenges.lua` - Add event registration for OnTick handlers
+- `SpawnChunk_ChunkEntry.lua` - Handle Time and ZeroToHero completion logic
+
+### 🎮 Testing Approach
+1. **Test Time Challenge** first with sandbox options
+2. Verify: Time tracking works, chunk unlocks after duration
+3. Test both "time in any chunk" true/false modes
+4. Move to Zero to Hero if Time works
+5. Later: Convert to Challenge menu entries (better UX)
+
+### 📁 Updated File URLs for Claude
+- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md
+- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua

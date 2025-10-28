@@ -65,8 +65,8 @@ function SpawnChunk.onZombieDead(zombie)
             pl:setHaloNote("Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget, 100, 255, 100, 150)
         end
         
-        -- Check for chunk completion
-        if playerChunkData.killCount >= playerChunkData.killTarget then
+        -- Check for chunk completion using challenge-specific logic
+        if SpawnChunk.isChunkCompleted() then
             SpawnChunk.onChunkComplete(playerChunkKey)
         end
     else
@@ -83,8 +83,8 @@ function SpawnChunk.onZombieDead(zombie)
             pl:setHaloNote("Kills: " .. data.killCount .. " / " .. data.killTarget, 100, 255, 100, 150)
         end
         
-        -- Check for victory
-        if data.killCount >= data.killTarget then
+        -- Check for victory using challenge-specific logic
+        if SpawnChunk.isChunkCompleted() then
             SpawnChunk.onVictory()
         end
     end

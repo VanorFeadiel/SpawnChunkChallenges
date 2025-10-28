@@ -578,7 +578,8 @@ function SpawnChunkHUD:render()
                 self:drawText(progressText, 10, currentY, 0, 1, 0, 1, UIFont.Medium)
                 chunkCompleted = true
             else
-                progressText = "Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget
+                -- Use challenge-specific progress text
+                progressText = "Chunk " .. playerChunkKey .. " - " .. SpawnChunk.getChallengeProgressText()
                 self:drawText(progressText, 10, currentY, 1, 1, 1, 1, UIFont.Medium)
             end
         else
@@ -622,7 +623,8 @@ function SpawnChunkHUD:render()
             self:drawText("Challenge Complete!", 10, currentY, 0, 1, 0, 1, UIFont.Medium)
             return
         end
-        progressText = "Kills: " .. data.killCount .. " / " .. data.killTarget
+        -- Use challenge-specific progress text
+        progressText = SpawnChunk.getChallengeProgressText()
         self:drawText(progressText, 10, currentY, 1, 1, 1, 1, UIFont.Medium)
         currentY = currentY + 25
     end

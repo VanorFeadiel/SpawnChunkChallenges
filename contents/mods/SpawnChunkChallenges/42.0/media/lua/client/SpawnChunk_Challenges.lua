@@ -171,7 +171,12 @@ function SpawnChunk.updateSkillProgress()
                 if not alreadyCompleted and currentLevel < 10 then
                     table.insert(data.pendingSkillUnlocks, {skill = skillName, level = currentLevel})
                     local username = SpawnChunk.getUsername()
-                    print("[" .. username .. "] Skill leveled up: " .. skillName .. " level " .. currentLevel .. " (banked for unlock)")
+                    print("[" .. username .. "] Skill leveled up: " .. skillName .. " level " .. currentLevel .. " (banked for unlock - " .. #data.pendingSkillUnlocks .. " unlocks available)")
+                elseif currentLevel >= 10 and not alreadyCompleted then
+                    -- Skill reached level 10!
+                    table.insert(data.completedSkills, skillName)
+                    local username = SpawnChunk.getUsername()
+                    print("[" .. username .. "] ⭐ SKILL COMPLETED: " .. skillName .. " reached level 10!")
                 end
                 
                 data.lastSkillLevels[skillName] = currentLevel
@@ -194,3 +199,60 @@ function SpawnChunk.useSkillUnlock(chunkKey)
     return true
 end
 
+-----------------------  EVENT HANDLERS  ---------------------------
+
+-- Time Challenge: Update progress every tick and check completion
+Events.OnTick.Add(function()
+    SpawnChunk.updateTimeProgress()
+    
+    -- Check for Time Challenge completion
+    local data = SpawnChunk.getData()
+    if data.isInitialized and data.challengeType == "Time" then
+        local pl = getPlayer()
+        if pl and SpawnChunk.isChunkCompleted() then
+            local username = SpawnChunk.getUsername()
+            print("[" .. username .. "] Time Challenge completed! Chunk unlocked.")
+            
+            if data.chunkMode then
+                SpawnChunk.onChunkComplete(data.currentChunk)
+            else
+                SpawnChunk.onVictory()
+            end
+        end
+    end
+end)
+
+-- Zero to Hero Challenge: Update skill progress every tick and check victory
+Events.OnTick.Add(function()
+    SpawnChunk.updateSkillProgress()
+    
+    -- Check for Zero to Hero victory (all skills at level 10)
+    local data = SpawnChunk.getData()
+    if data.isInitialized and data.challengeType == "ZeroToHero" then
+        local pl = getPlayer()
+        if pl and SpawnChunk.isChunkCompleted() then
+            local username = SpawnChunk.getUsername()
+            print("[" .. username .. "] ALL SKILLS REACHED LEVEL 10! Victory - boundaries removed!")
+            
+            -- Mark as complete and remove boundaries
+            data.isComplete = true
+            
+            -- Remove visual markers
+            if SpawnChunk.removeGroundMarkers then
+                SpawnChunk.removeGroundMarkers()
+            end
+            if SpawnChunk.removeMapSymbol then
+                SpawnChunk.removeMapSymbol()
+            end
+            
+            -- Show victory message
+            pl:setHaloNote("VICTORY! All skills maxed - Free exploration unlocked!", 0, 255, 0, 500)
+            pl:playSound("VictorySound")
+            
+            -- Call victory if exists
+            if SpawnChunk.onVictory then
+                SpawnChunk.onVictory()
+            end
+        end
+    end
+end)

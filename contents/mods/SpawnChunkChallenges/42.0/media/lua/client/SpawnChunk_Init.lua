@@ -36,6 +36,44 @@ function SpawnChunk.initialize()
     -- Check if chunk mode is enabled
     local chunkModeEnabled = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.EnableChunkMode) or false
     
+    -- Initialize challenge type from sandbox options
+    local challengeTypeValue = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ChallengeType) or 1
+    local challengeType
+    if challengeTypeValue == 1 then
+        challengeType = "Purge"
+    elseif challengeTypeValue == 2 then
+        challengeType = "Time"
+    elseif challengeTypeValue == 3 then
+        challengeType = "ZeroToHero"
+    else
+        challengeType = "Purge"  -- Default fallback
+    end
+    data.challengeType = challengeType
+    
+    -- Initialize challenge-specific settings
+    if challengeType == "Time" then
+        data.timeTarget = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.TimeChallengeDuration) or 12
+        data.timeInAnyChunk = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.TimeInAnyChunk) or false
+        data.timeHours = 0
+    elseif challengeType == "ZeroToHero" then
+        -- Initialize skill tracking for Zero to Hero
+        data.pendingSkillUnlocks = {}
+        data.completedSkills = {}
+        data.lastSkillLevels = {}
+        
+        -- Initialize all required skills
+        local requiredSkills = {"Aiming", "Fitness", "Strength", "Sprinting", "Lightfoot", "Sneak"}
+        local pl = getPlayer()
+        if pl then
+            for _, skillName in ipairs(requiredSkills) do
+                local perk = Perks.FromString(skillName)
+                if perk then
+                    data.lastSkillLevels[skillName] = pl:getPerkLevel(perk)
+                end
+            end
+        end
+    end
+    
     -- Calculate kill target based on cell zombie population and boundary area
     local cell = getCell()
     local zombieList = cell and cell:getZombieList()
@@ -80,6 +118,7 @@ function SpawnChunk.initialize()
         
         print("=== SPAWN CHUNK CHALLENGE STARTED (CHUNK MODE) ===")
         print("Character: " .. username)
+        print("Challenge Type: " .. challengeType)
         print("Spawn: " .. x .. ", " .. y .. ", " .. z)
         print("Boundary Size: " .. data.boundarySize .. " tiles per chunk")
         print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
@@ -87,8 +126,16 @@ function SpawnChunk.initialize()
         print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
         print("===================================================")
         
-        -- Show on-screen message
-        pl:setHaloNote("Chunk Challenge Started! Kill " .. target .. " zombies to unlock adjacent chunks.", 255, 255, 100, 300)
+        -- Show on-screen message based on challenge type
+        local challengeMessage
+        if challengeType == "Time" then
+            challengeMessage = "Time Challenge Started! Survive " .. data.timeTarget .. " hours to unlock adjacent chunks."
+        elseif challengeType == "ZeroToHero" then
+            challengeMessage = "Zero to Hero Challenge Started! Level skills to unlock chunks."
+        else
+            challengeMessage = "Purge Challenge Started! Kill " .. target .. " zombies to unlock adjacent chunks."
+        end
+        pl:setHaloNote(challengeMessage, 255, 255, 100, 300)
     else
         -- CLASSIC MODE: Single boundary
         data.killCount = 0
@@ -98,14 +145,23 @@ function SpawnChunk.initialize()
         
         print("=== SPAWN CHUNK CHALLENGE STARTED (CLASSIC MODE) ===")
         print("Character: " .. username)
+        print("Challenge Type: " .. challengeType)
         print("Spawn: " .. x .. ", " .. y .. ", " .. z)
         print("Boundary: " .. data.boundarySize .. " tiles")
         print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
         print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
         print("====================================================")
         
-        -- Show on-screen message
-        pl:setHaloNote("Challenge Started! Kill " .. target .. " zombies to escape.", 255, 255, 100, 300)
+        -- Show on-screen message based on challenge type
+        local challengeMessage
+        if challengeType == "Time" then
+            challengeMessage = "Time Challenge Started! Survive " .. data.timeTarget .. " hours to escape."
+        elseif challengeType == "ZeroToHero" then
+            challengeMessage = "Zero to Hero Challenge Started! Level all skills to 10 to escape."
+        else
+            challengeMessage = "Purge Challenge Started! Kill " .. target .. " zombies to escape."
+        end
+        pl:setHaloNote(challengeMessage, 255, 255, 100, 300)
     end
 end
 
