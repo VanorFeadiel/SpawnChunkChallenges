@@ -220,5 +220,6 @@ The repository includes automation scripts to streamline the development workflo
 5. Later: Convert to Challenge menu entries (better UX)
 
 ### 📁 Updated File URLs for Claude
+- **Testing Handoff**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/TESTING_HANDOFF_v0.3.2.md
 - **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md
 - **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua
