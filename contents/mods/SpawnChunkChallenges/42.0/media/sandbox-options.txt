@@ -30,6 +30,16 @@ option SpawnChunkChallenge.KillMultiplier
     translation = SpawnChunkChallenge_KillMultiplier,
 }
 
+option SpawnChunkChallenge.KillLocationRule
+{
+    type = integer,
+    min = 1,
+    max = 4,
+    default = 1,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_KillLocationRule,
+}
+
 option SpawnChunkChallenge.ShowGroundMarkers
 {
     type = boolean,
@@ -73,7 +83,7 @@ option SpawnChunkChallenge.DebugCloseSpawn
 option SpawnChunkChallenge.EnableChunkMode
 {
     type = boolean,
-    default = false,
+    default = true,
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_EnableChunkMode,
 }

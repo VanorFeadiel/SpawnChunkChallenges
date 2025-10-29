@@ -4,6 +4,8 @@ Sandbox_EN = {
     Sandbox_SpawnChunkChallenge_BoundarySize = "Spawn chunk size (10–100)",
     Sandbox_SpawnChunkChallenge_MinZombies   = "Minimum zombies to spawn if needed (0-5)",
     Sandbox_SpawnChunkChallenge_KillMultiplier = "Kill count multiplier (0.5–3.0)",
+    Sandbox_SpawnChunkChallenge_KillLocationRule = "Kill Counting Rule (Purge Only)",
+    Sandbox_SpawnChunkChallenge_KillLocationRule_tooltip = "Where kills count toward progress:\n1 = Player must be in active chunk\n2 = Zombie must be in active chunk\n3 = Either player OR zombie in active chunk\n4 = Anywhere (most permissive)",
     Sandbox_SpawnChunkChallenge_ShowGroundMarkers = "Show ground boundary markers",
     Sandbox_SpawnChunkChallenge_ShowMapSymbols = "Show map boundary symbols", 
     Sandbox_SpawnChunkChallenge_ShowHUD = "Show progress HUD",

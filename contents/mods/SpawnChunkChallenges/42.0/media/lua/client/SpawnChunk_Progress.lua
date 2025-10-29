@@ -1,7 +1,7 @@
 -- SpawnChunk_Progress.lua
 -- Track challenge progress and completion
 -- CHARACTER-SPECIFIC via getData()
---modversion=0.3.2.027
+--modversion=0.3.2.028
 
 SpawnChunk = SpawnChunk or {}
 
@@ -56,6 +56,53 @@ function SpawnChunk.onZombieDead(zombie)
             print("[" .. username .. "] Sound system reset for new chunk")
         end
         
+        -- === PURGE ONLY: Apply kill location rule ===
+        if data.challengeType == "Purge" then
+            local killLocationRule = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillLocationRule) or 1
+            
+            -- Only check additional rules for Options 2-4 (Option 1 is current default behavior)
+            if killLocationRule ~= 1 then
+                -- Get zombie location
+                local zombieX = math.floor(zombie:getX())
+                local zombieY = math.floor(zombie:getY())
+                local zombieChunkKey = SpawnChunk.getChunkKeyFromPosition(zombieX, zombieY, data)
+                
+                local shouldCountKill = false
+                
+                if killLocationRule == 2 then
+                    -- Option 2: Zombie must be in current active chunk
+                    -- Player can be anywhere in unlocked area, but zombie must die in active chunk
+                    shouldCountKill = (zombieChunkKey == data.currentChunk)
+                    
+                    if not shouldCountKill then
+                        print("[" .. username .. "] [Rule 2] Kill not counted - zombie in chunk " .. zombieChunkKey .. ", need chunk " .. data.currentChunk)
+                    end
+                    
+                elseif killLocationRule == 3 then
+                    -- Option 3: Either player OR zombie must be in current active chunk
+                    -- Flexible rule - works if either is in the active chunk
+                    local playerInCurrent = (playerChunkKey == data.currentChunk)
+                    local zombieInCurrent = (zombieChunkKey == data.currentChunk)
+                    shouldCountKill = (playerInCurrent or zombieInCurrent)
+                    
+                    if not shouldCountKill then
+                        print("[" .. username .. "] [Rule 3] Kill not counted - player in " .. playerChunkKey .. ", zombie in " .. zombieChunkKey .. ", need " .. data.currentChunk)
+                    end
+                    
+                elseif killLocationRule == 4 then
+                    -- Option 4: Anywhere - always count kills
+                    -- Most permissive mode, kills count regardless of location
+                    shouldCountKill = true
+                end
+                
+                -- If kill doesn't meet the location rule, don't count it
+                if not shouldCountKill then
+                    return
+                end
+            end
+            -- Option 1 (default): Player is already validated to be in unlocked chunk above
+        end
+        
         -- Increment kill counter for the chunk player is in
         playerChunkData.killCount = playerChunkData.killCount + 1
         
@@ -73,6 +120,27 @@ function SpawnChunk.onZombieDead(zombie)
     else
         -- CLASSIC MODE: Track kills globally
         if data.isComplete then return end
+        
+        -- === PURGE ONLY: Apply kill location rule ===
+        if data.challengeType == "Purge" then
+            local killLocationRule = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillLocationRule) or 1
+            
+            -- In classic mode, Option 2-4 don't make much sense since there's only one area
+            -- But we'll implement Option 4 as "always count" for consistency
+            if killLocationRule == 4 then
+                -- Always count in Option 4 (no boundary check)
+                -- Skip the normal boundary validation
+            else
+                -- Options 1-3: Use normal boundary validation (player must be in bounds)
+                local playerX = math.floor(pl:getX())
+                local playerY = math.floor(pl:getY())
+                
+                if not SpawnChunk.isInBounds(playerX, playerY) then
+                    print("[" .. username .. "] [Classic] Kill outside boundary, not counted")
+                    return
+                end
+            end
+        end
         
         -- Increment kill counter
         data.killCount = data.killCount + 1

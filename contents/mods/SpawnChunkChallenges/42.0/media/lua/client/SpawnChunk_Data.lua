@@ -1,12 +1,12 @@
 -- SpawnChunk_Data.lua
 -- Persistent data management (saves across sessions)
 -- CHARACTER-SPECIFIC DATA - Each character gets their own challenge state
---modversion=0.3.2.026
+--modversion=0.3.2.028
 
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.2.026"
+SpawnChunk.MOD_VERSION = "0.3.2.028"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 

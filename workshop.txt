@@ -3,5 +3,5 @@ id=3589525869
 title=SpawnChunk Challenges
 description=SpawnChunk Challenges
 description=Project Zomboid mod that traps players in chunks area until they accomplish certain conditions to leave their chunk based on the selected challenges and options.
-tags=
+tags=Build 42
 visibility=private
