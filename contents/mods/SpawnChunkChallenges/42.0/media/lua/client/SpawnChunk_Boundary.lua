@@ -145,6 +145,69 @@ function SpawnChunk.teleportToSpawn()
     print("[" .. username .. "] Teleportation completed")
 end
 
+-----------------------  CHUNK CHANGE DETECTION  ---------------------------
+
+-- Track last chunk player was in (per-player)
+SpawnChunk.lastPlayerChunk = SpawnChunk.lastPlayerChunk or {}
+
+-- Detect when player enters a new chunk and handle Zero to Hero unlocks
+function SpawnChunk.detectChunkChange()
+    local pl = getPlayer()
+    if not pl then return end
+    
+    local data = SpawnChunk.getData()
+    if not data.isInitialized or not data.chunkMode then return end
+    
+    local username = SpawnChunk.getUsername()
+    local x = math.floor(pl:getX())
+    local y = math.floor(pl:getY())
+    
+    -- Get current chunk
+    local currentChunkKey = SpawnChunk.getChunkKeyFromPosition(x, y, data)
+    local lastChunk = SpawnChunk.lastPlayerChunk[username]
+    
+    -- If chunk changed
+    if currentChunkKey ~= lastChunk then
+        SpawnChunk.lastPlayerChunk[username] = currentChunkKey
+        
+        -- ZERO TO HERO: Check if entering available (blue) chunk with banked unlocks
+        if data.challengeType == "ZeroToHero" then
+            local chunkData = data.chunks and data.chunks[currentChunkKey]
+            
+            -- Entering available (blue) chunk?
+            if chunkData and chunkData.available and not chunkData.unlocked then
+                print("[" .. username .. "] Entered chunk " .. currentChunkKey)
+                
+                -- STEP 1: Unlock the chunk and make it current (YELLOW)
+                SpawnChunk.unlockChunk(currentChunkKey)
+                data.currentChunk = currentChunkKey
+                
+                -- STEP 2: Start 1-hour settlement timer and set readyToUnlock to FALSE
+                if SpawnChunk.startChunkEntryTimer then
+                    SpawnChunk.startChunkEntryTimer()
+                end
+                data.readyToUnlock = false
+                print("[" .. username .. "] readyToUnlock = false (timer started)")
+                
+                -- STEP 3: Clear ALL other available (blue) chunks - they become inaccessible
+                if SpawnChunk.clearAllAvailableChunks then
+                    SpawnChunk.clearAllAvailableChunks()
+                end
+                
+                -- STEP 4: Visual feedback
+                local remainingUnlocks = #(data.pendingSkillUnlocks or {})
+                pl:setHaloNote("Chunk entered! Settlement timer: 1 hour", 100, 255, 255, 150)
+                
+                -- Recreate visual markers to show new state
+                data.markersCreated = false
+                if SpawnChunk.createGroundMarkers then
+                    SpawnChunk.createGroundMarkers()
+                end
+            end
+        end
+    end
+end
+
 -----------------------  BOUNDARY ENFORCEMENT  ---------------------------
 
 local checkCounter = 0
@@ -171,6 +234,9 @@ function SpawnChunk.checkBoundary()
     if dx <= 2 and dy <= 2 then
         return -- Player is at spawn, no need to teleport
     end
+    
+    -- Detect chunk changes (for Zero to Hero cascade)
+    SpawnChunk.detectChunkChange()
     
     -- Check if player is outside boundary
     if not SpawnChunk.isInBounds(x, y) then

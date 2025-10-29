@@ -52,6 +52,7 @@ function SpawnChunk.getData()
         -- ZERO TO HERO DATA (for Zero to Hero challenge)
         pendingSkillUnlocks = {}, -- Queue of skill levels waiting to unlock chunks: [{skill="Aiming", level=5}, {skill="Fitness", level=3}]
         completedSkills = {},     -- Skills that have reached level 10: ["Aiming", "Fitness", ...]
+        readyToUnlock = true,     -- Flag: can use unlock to complete chunk (becomes false after unlock, true after timer)
         
         -- ADDITIVE CHUNKS DATA (new)
         chunks = {},                -- Dictionary of chunk data: ["chunk_0_0"] = {unlocked, completed, killCount, killTarget}
@@ -217,6 +218,21 @@ function SpawnChunk.makeChunkAvailable(chunkKey)
     return chunkData
 end
 
+-- Remove available flag from all chunks (called when player picks a blue chunk)
+function SpawnChunk.clearAllAvailableChunks()
+    local data = SpawnChunk.getData()
+    local username = SpawnChunk.getUsername()
+    
+    if data.chunks then
+        for chunkKey, chunkData in pairs(data.chunks) do
+            if chunkData.available and not chunkData.unlocked then
+                chunkData.available = false
+                print("[" .. username .. "] Removed available flag from: " .. chunkKey)
+            end
+        end
+    end
+end
+
 -- Unlock a chunk (and initialize if needed)
 function SpawnChunk.unlockChunk(chunkKey)
     local chunkData = SpawnChunk.initChunk(chunkKey, true, false)
@@ -301,6 +317,52 @@ function SpawnChunk.getDistanceToAllowedBoundary(playerX, playerY)
     end
     
     return minDistance
+end
+
+-----------------------  ZERO TO HERO UNLOCK MANAGEMENT  ---------------------------
+
+-- Use a Zero to Hero unlock when skill levels up
+-- Completes current yellow chunk and makes neighbors available
+function SpawnChunk.useZeroToHeroUnlockForCompletion()
+    local data = SpawnChunk.getData()
+    local username = SpawnChunk.getUsername()
+    
+    -- Check if we have unlocks
+    local unlocksAvailable = #(data.pendingSkillUnlocks or {})
+    if unlocksAvailable == 0 then
+        return false
+    end
+    
+    -- Consume one unlock
+    table.remove(data.pendingSkillUnlocks, 1)
+    local remainingUnlocks = #(data.pendingSkillUnlocks or {})
+    
+    -- Set readyToUnlock flag to FALSE (must wait for timer to expire)
+    data.readyToUnlock = false
+    
+    print("[" .. username .. "] Used unlock to complete chunk " .. data.currentChunk .. " (" .. remainingUnlocks .. " unlocks remaining)")
+    print("[" .. username .. "] readyToUnlock = false (waiting for timer)")
+    
+    return true
+end
+
+-- Set chunk entry timer (starts when entering blue chunk)
+function SpawnChunk.startChunkEntryTimer()
+    local data = SpawnChunk.getData()
+    local gameTime = getGameTime()
+    data.chunkEntryTime = gameTime:getWorldAgeHours()
+    
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Chunk entry timer started - 1 hour settlement period")
+end
+
+-- Clear chunk entry timer
+function SpawnChunk.clearChunkEntryTimer()
+    local data = SpawnChunk.getData()
+    data.chunkEntryTime = nil
+    
+    local username = SpawnChunk.getUsername()
+    print("[" .. username .. "] Chunk entry timer cleared")
 end
 
 -----------------------  DEBUG FUNCTIONS  ---------------------------

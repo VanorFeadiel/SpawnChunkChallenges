@@ -134,51 +134,65 @@ function SpawnChunk.getChallengeProgressText()
         end
         
     elseif challengeType == "ZeroToHero" then
-        local skillProgress = ""
+        -- SIMPLIFIED HUD: Just show skill count and banked unlocks
         local pl = getPlayer()
+        local skillCount = 0
         
         if pl then
-            -- AUTO-DETECT: Get all perks using XP system (Build 42 compatible)
+            -- Count tracked skills (skills with level > 0)
             local xpSystem = pl:getXp()
-            local skillTexts = {}
-            local trackedSkills = {}
-            
             if xpSystem then
-                -- Iterate through all perks using Perks enum
                 for i = 0, Perks.getMaxIndex() - 1 do
                     local perk = PerkFactory.getPerk(Perks.fromIndex(i))
                     if perk then
                         local perkType = perk:getType()
-                        local skillName = perkType:toString()
                         local level = pl:getPerkLevel(perkType)
-                        
-                        -- Only show skills that have at least 1 level (not level 0)
                         if level > 0 then
-                            table.insert(trackedSkills, skillName)
-                            table.insert(skillTexts, skillName .. ": " .. level .. "/10")
+                            skillCount = skillCount + 1
                         end
                     end
                 end
             end
+        end
+        
+        -- Simple display: just counts
+        local unlocksCount = #(data.pendingSkillUnlocks or {})
+        local text = "Skills tracked: " .. skillCount
+        
+        if unlocksCount > 0 then
+            text = text .. " (+" .. unlocksCount .. " unlocks)"
+        end
+        
+        -- Show settlement timer if active
+        if data.chunkEntryTime then
+            local gameTime = getGameTime()
+            local currentHours = gameTime:getWorldAgeHours()
+            local hoursSinceEntry = currentHours - data.chunkEntryTime
+            local minutesRemaining = (1.0 - hoursSinceEntry) * 60
             
-            -- Update lastSkillLevels to include newly discovered skills
-            data.lastSkillLevels = data.lastSkillLevels or {}
-            for _, skillName in ipairs(trackedSkills) do
-                local perk = Perks.FromString(skillName)
-                if perk then
-                    data.lastSkillLevels[skillName] = pl:getPerkLevel(perk)
+            if minutesRemaining > 0 then
+                -- Timer still counting down
+                text = text .. string.format(" [Timer: %.0fm]", minutesRemaining)
+            else
+                -- Timer expired
+                local readyFlag = data.readyToUnlock or false
+                if unlocksCount > 0 and readyFlag then
+                    text = text .. " [Timer: Completing...]"
+                elseif unlocksCount > 0 and not readyFlag then
+                    text = text .. " [Timer: Ready, waiting...]"
+                else
+                    text = text .. " [Timer: Need unlock!]"
                 end
             end
-            
-            skillProgress = table.concat(skillTexts, ", ")
+        else
+            -- No timer - show ready status
+            local readyFlag = data.readyToUnlock or false
+            if readyFlag and unlocksCount > 0 then
+                text = text .. " [Ready to unlock!]"
+            end
         end
         
-        -- Show pending unlocks if any
-        if #(data.pendingSkillUnlocks or {}) > 0 then
-            skillProgress = skillProgress .. " (+" .. #data.pendingSkillUnlocks .. " banked)"
-        end
-        
-        return "Skills: " .. (skillProgress ~= "" and skillProgress or "Loading...")
+        return text
     end
     
     return "Unknown challenge type"
@@ -276,6 +290,9 @@ function SpawnChunk.updateSkillProgress()
     local xpSystem = pl:getXp()
     if not xpSystem then return end
     
+    -- Track if we earned our FIRST unlock (0→1)
+    local hadUnlocks = #(data.pendingSkillUnlocks or {})
+    
     -- Iterate through all perks using Perks enum
     for i = 0, Perks.getMaxIndex() - 1 do
         local perk = PerkFactory.getPerk(Perks.fromIndex(i))
@@ -311,7 +328,8 @@ function SpawnChunk.updateSkillProgress()
                         table.insert(data.pendingSkillUnlocks, {skill = skillName, level = levelReached})
                     end
                     
-                    print("[" .. username .. "] Skill leveled up: " .. skillName .. " +" .. levelsGained .. " levels (now level " .. currentLevel .. ") - Banked " .. levelsGained .. " unlock(s) - Total: " .. #data.pendingSkillUnlocks)
+                    local totalUnlocks = #data.pendingSkillUnlocks
+                    print("[" .. username .. "] Skill: " .. skillName .. " +" .. levelsGained .. " levels → " .. totalUnlocks .. " unlocks")
                 elseif currentLevel >= 10 and not alreadyCompleted then
                     -- Skill reached level 10!
                     data.completedSkills = data.completedSkills or {}
@@ -321,6 +339,43 @@ function SpawnChunk.updateSkillProgress()
                 
                 data.lastSkillLevels[skillName] = currentLevel
             end
+        end
+    end
+    
+    -- CRITICAL: If this was a NEW unlock in Chunk Mode, handle appropriately
+    local hasUnlocksNow = #(data.pendingSkillUnlocks or {})
+    if data.chunkMode and hasUnlocksNow > hadUnlocks then
+        local username = SpawnChunk.getUsername()
+        local unlocksGained = hasUnlocksNow - hadUnlocks
+        print("[" .. username .. "] Gained " .. unlocksGained .. " unlock(s), total now: " .. hasUnlocksNow)
+        
+        -- Check if we're ready to use an unlock (flag must be true)
+        local readyToUse = data.readyToUnlock or false
+        print("[" .. username .. "] readyToUnlock flag: " .. tostring(readyToUse))
+        
+        if readyToUse then
+            -- Ready to use unlock - complete the current yellow chunk
+            print("[" .. username .. "] Ready to unlock - completing chunk immediately")
+            
+            if SpawnChunk.useZeroToHeroUnlockForCompletion and SpawnChunk.useZeroToHeroUnlockForCompletion() then
+                -- Show visual feedback
+                pl:setHaloNote("Skill leveled! Chunk completing...", 100, 255, 100, 150)
+                
+                -- Complete the current chunk (this will unlock neighbors and pick new current)
+                if SpawnChunk.onChunkComplete then
+                    SpawnChunk.onChunkComplete(data.currentChunk)
+                end
+                
+                -- Recreate visual markers to show new state
+                data.markersCreated = false
+                if SpawnChunk.createGroundMarkers then
+                    SpawnChunk.createGroundMarkers()
+                end
+            end
+        else
+            -- Not ready yet (timer is active) - just bank the unlock
+            print("[" .. username .. "] Settlement timer active - unlock banked for later")
+            pl:setHaloNote("Skill leveled! Unlock banked (waiting for timer)", 100, 255, 100, 150)
         end
     end
 end
@@ -369,12 +424,94 @@ Events.OnTick.Add(function()
     end
 end)
 
--- Zero to Hero Challenge: Update skill progress every tick and check victory
+-- Zero to Hero Challenge: Update skill progress every tick and check timer
+local timerCheckCounter = 0
+local TIMER_CHECK_INTERVAL = 60  -- Check every 60 ticks (~1 second)
+
 Events.OnTick.Add(function()
     SpawnChunk.updateSkillProgress()
     
-    -- Check for Zero to Hero victory (all skills at level 10)
     local data = SpawnChunk.getData()
+    
+    -- Check for Zero to Hero timer expiration (check less frequently for performance)
+    timerCheckCounter = timerCheckCounter + 1
+    if timerCheckCounter >= TIMER_CHECK_INTERVAL then
+        timerCheckCounter = 0
+        
+        if data.isInitialized and data.challengeType == "ZeroToHero" and data.chunkMode then
+            -- Check if timer exists and has expired
+            if data.chunkEntryTime then
+                local gameTime = getGameTime()
+                local currentHours = gameTime:getWorldAgeHours()
+                local hoursSinceEntry = currentHours - data.chunkEntryTime
+                local timerExpired = hoursSinceEntry >= 1.0
+                
+                if timerExpired then
+                    local unlocksAvailable = #(data.pendingSkillUnlocks or {})
+                    local username = SpawnChunk.getUsername()
+                    
+                    print("[" .. username .. "] Timer expired!")
+                    
+                    -- Clear the timer
+                    if SpawnChunk.clearChunkEntryTimer then
+                        SpawnChunk.clearChunkEntryTimer()
+                    end
+                    
+                    -- Set readyToUnlock flag to TRUE
+                    data.readyToUnlock = true
+                    print("[" .. username .. "] readyToUnlock = true")
+                    
+                    -- If unlocks available, try to complete the yellow chunk NOW
+                    if unlocksAvailable > 0 then
+                        print("[" .. username .. "] Unlocks available: " .. unlocksAvailable .. " - attempting completion")
+                        
+                        -- Find the current yellow (unlocked but not completed) chunk
+                        local yellowChunkKey = nil
+                        if data.chunks then
+                            for chunkKey, chunkData in pairs(data.chunks) do
+                                if chunkData.unlocked and not chunkData.completed then
+                                    yellowChunkKey = chunkKey
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if yellowChunkKey then
+                            print("[" .. username .. "] Found yellow chunk: " .. yellowChunkKey .. " - completing it")
+                            
+                            -- Use one unlock to complete the chunk
+                            if SpawnChunk.useZeroToHeroUnlockForCompletion and SpawnChunk.useZeroToHeroUnlockForCompletion() then
+                                local pl = getPlayer()
+                                if pl then
+                                    local remainingUnlocks = #(data.pendingSkillUnlocks or {})
+                                    pl:setHaloNote("Settlement complete! (" .. remainingUnlocks .. " unlocks remaining)", 100, 255, 100, 150)
+                                end
+                                
+                                -- Set yellow chunk as current and complete it
+                                data.currentChunk = yellowChunkKey
+                                
+                                if SpawnChunk.onChunkComplete then
+                                    SpawnChunk.onChunkComplete(yellowChunkKey)
+                                end
+                                
+                                -- Recreate visual markers
+                                data.markersCreated = false
+                                if SpawnChunk.createGroundMarkers then
+                                    SpawnChunk.createGroundMarkers()
+                                end
+                            end
+                        else
+                            print("[" .. username .. "] WARNING: No yellow chunk found after timer expiration")
+                        end
+                    else
+                        print("[" .. username .. "] No unlocks available - waiting for skill gain")
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Check for Zero to Hero victory (all skills at level 10)
     if data.isInitialized and data.challengeType == "ZeroToHero" then
         local pl = getPlayer()
         -- CRITICAL: Check if NOT already complete (prevent multiple calls)

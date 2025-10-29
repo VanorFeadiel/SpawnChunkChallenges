@@ -577,20 +577,29 @@ function SpawnChunkHUD:render()
                 progressText = "Chunk " .. playerChunkKey .. " Complete!"
                 self:drawText(progressText, 10, currentY, 0, 1, 0, 1, UIFont.Medium)
                 chunkCompleted = true
+                currentY = currentY + 25
+                
+                -- For Zero to Hero, show unlock count even when completed
+                if data.challengeType == "ZeroToHero" then
+                    local unlocksAvailable = #(data.pendingSkillUnlocks or {})
+                    local unlockText = "Unlocks Available: " .. unlocksAvailable
+                    self:drawText(unlockText, 10, currentY, 1, 1, 1, 1, UIFont.Small)
+                    currentY = currentY + 20
+                end
             else
                 -- Use challenge-specific progress text
                 progressText = "Chunk " .. playerChunkKey .. " - " .. SpawnChunk.getChallengeProgressText()
                 self:drawText(progressText, 10, currentY, 1, 1, 1, 1, UIFont.Medium)
+                currentY = currentY + 25
             end
         else
             -- Player is in a locked or invalid chunk
             progressText = "In locked chunk: " .. playerChunkKey
             self:drawText(progressText, 10, currentY, 1, 0.5, 0.5, 1, UIFont.Medium)
+            currentY = currentY + 25
         end
         
-        currentY = currentY + 25  -- Move down for next line
-        
-        -- Show spawn delay status or paused status
+        -- Show spawn delay status or paused status (currentY already incremented above)
         local spawnDelayActive = false
         local remainingMinutes = 0
         
