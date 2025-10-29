@@ -1,6 +1,7 @@
 -- SpawnChunk_Init.lua
 -- Initialize challenge when player spawns
 -- CHARACTER-SPECIFIC INITIALIZATION
+--modversion=0.3.2.024
 
 SpawnChunk = SpawnChunk or {}
 

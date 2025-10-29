@@ -1,6 +1,7 @@
 -- SpawnChunk_Kills.lua
 -- Track zombie kills and check for victory
 -- CHARACTER-SPECIFIC via getData()
+--modversion=0.3.2.024
 
 SpawnChunk = SpawnChunk or {}
 

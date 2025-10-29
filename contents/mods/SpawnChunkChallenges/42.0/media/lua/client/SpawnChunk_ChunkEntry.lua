@@ -1,6 +1,7 @@
 -- SpawnChunk_ChunkEntry.lua
 -- Detect when player enters an available chunk and auto-unlock it
 -- CHARACTER-SPECIFIC via getData()
+--modversion=0.3.2.024
 
 SpawnChunk = SpawnChunk or {}
 

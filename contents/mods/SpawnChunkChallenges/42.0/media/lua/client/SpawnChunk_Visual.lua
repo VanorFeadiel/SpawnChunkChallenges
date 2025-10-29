@@ -1,6 +1,7 @@
 -- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES - CHARACTER SPECIFIC)
 -- Ground markers, map boundary lines, and HUD
 -- Each character maintains their own visual elements
+--modversion=0.3.2.024
 
 SpawnChunk = SpawnChunk or {}
 
