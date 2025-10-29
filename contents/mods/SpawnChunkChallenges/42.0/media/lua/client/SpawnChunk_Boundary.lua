@@ -1,7 +1,7 @@
 -- SpawnChunk_Boundary.lua
 -- Check if player is within boundary and teleport if outside
 -- CHARACTER-SPECIFIC via getData()
---modversion=0.3.2.024
+--modversion=0.3.2.026
 
 SpawnChunk = SpawnChunk or {}
 

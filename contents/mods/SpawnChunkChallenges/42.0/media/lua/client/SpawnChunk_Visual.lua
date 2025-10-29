@@ -1,7 +1,7 @@
 -- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES - CHARACTER SPECIFIC)
 -- Ground markers, map boundary lines, and HUD
 -- Each character maintains their own visual elements
---modversion=0.3.2.024
+--modversion=0.3.2.026
 
 SpawnChunk = SpawnChunk or {}
 
@@ -1087,8 +1087,8 @@ local function createHUD()
     local data = SpawnChunk.getData()
     
     -- Use saved position/size or defaults
-    local x = data.hudWindowX or 180
-    local y = data.hudWindowY or 30
+    local x = data.hudWindowX or 75
+    local y = data.hudWindowY or 0
     local width = data.hudWindowWidth or 450
     local height = data.hudWindowHeight or 500
     

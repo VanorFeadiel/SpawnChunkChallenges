@@ -1,7 +1,7 @@
 -- SpawnChunk_Spawner.lua
 -- Hybrid spawn/sound attraction system with debug tracking
 -- CHARACTER-SPECIFIC via getData()
---modversion=0.3.2.024
+--modversion=0.3.2.026
 
 SpawnChunk = SpawnChunk or {}
 

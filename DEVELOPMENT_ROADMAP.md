@@ -1,514 +1,463 @@
-SpawnChunk Challenges - Development Roadmap
-🎯 Current Status: Phase 1 Complete ✅
-Latest Update: 2025-10-20
-Roadmap Version: 4.0
-Mod Version: v0.1-alpha
-Build: Project Zomboid Build 42.0
+# SpawnChunk Challenges - Development Roadmap
 
-Phase 1: Foundation ✅ COMPLETE
-Goal: Stable single-chunk challenge system
-Core Mechanics ✅
-
- Spawn position capture and chunk definition
- Boundary enforcement via teleportation
- Kill tracking for zombie elimination
- Progressive targets (population/9 zombies)
- Victory condition with free exploration unlock
- Persistence through saves & respawns
-
-Visual Feedback ✅
-
- Ground markers for boundary visualization (yellow "X" on every boundary tile)
- Map symbols showing challenge zone (continuous yellow rectangle boundary)
- Small green spawn point marker
- HUD showing progress and boundaries (kills, distance to boundary)
- Warning system for approaching edges (synchronized at <10 tiles)
- Color-coded feedback (green safe → red danger)
- Victory notifications and effects
- Victory celebration sound
-
-Victory & Cleanup ✅
-
- Victory removes mod symbols
- Player symbols preserved on victory
- Death reset recreates ground markers
- Map symbols persist through death
- Visual synchronization (warning + red text at same distance)
- Reward system (customizable items) - NOT IMPLEMENTED (future feature)
-
-Known Issues - Fixed ✅
-
- Victory function override conflict → Removed Visual.lua victory
- Anonymous event handler removal → Named functions implemented
- Missing respawn handler → Added in Init.lua
- Multiple timers → Consolidated initialization
-
-Testing Results ✅
-
- Fresh spawn → kill tracking → victory
- Death/respawn cycle
- Save/load game
- Visual elements persist correctly
- Victory cleanup preserves player symbols
- Death reset with proper visual recreation
-
-
-Phase 2: Configuration & Polish 🔄 NEXT
-Goal: Make system configurable and user-friendly
-Phase 2.1: Sandbox Options 🎯 PRIORITY
-Estimated Time: 2-4 hours (CoPilot + Claude planning)
-Files to Create:
-media/lua/shared/
-└── SpawnChunk_Sandbox.lua   # SandboxVars definitions
-```
-
-**Files to Modify**:
-```
-SpawnChunk_Init.lua    # Read sandbox settings
-SpawnChunk_Kills.lua   # Use configurable targets
-SpawnChunk_Visual.lua  # Configurable visuals
-Sandbox Options to Add:
-
- Challenge type selection
-
- Kill zombies (current)
- Survive X days (future)
- Gather resources (future)
-
-
- Boundary size (10-100 tiles)
-
- Default: 50x50
- Min: 10x10 (tight!)
- Max: 100x100 (easy mode)
-
-
- Kill target multiplier (0.5-2.0x)
-
- Default: 1.0 (population/9)
- Easy: 0.5x (fewer kills)
- Hard: 2.0x (more kills)
-
-
- Respawn behavior
-
- Full reset (current)
- Soft reset (keep some progress)
- No reset (persistent)
-
-
- Visual options
-
- Show/hide ground markers
- Show/hide map symbols
- Show/hide HUD
- Warning distance (5-15 tiles)
-
-
-
-Testing Checklist:
-
- Options appear in world setup menu
- Values persist in saves
- Changing options affects behavior correctly
- Edge cases handled (min/max values)
-
-CoPilot Implementation Notes:
-
-Start with SpawnChunk_Sandbox.lua (definitions)
-Add getter functions in Init.lua
-Update Kills.lua calculations
-Adjust Visual.lua displays
-Test each option individually
-
-
-Phase 2.2: Enhanced Feedback 🎨 TODO
-Goal: Better visual feedback and player experience
-
- Progress milestones (25%, 50%, 75% notifications)
- Sound effects
-
- Victory celebration sound - COMPLETED
- Boundary warning sounds
-
-
- Better tutorial/onboarding (first-time tips)
- Map legend/key explaining boundary colors
-
-Testing Focus: User experience and clarity
-
-Phase 2.3: Performance & Polish ⚡ TODO
-Goal: Optimize and stabilize
-
- Optimize OnTick handlers (reduce frequency if possible)
- Reduce marker count options
- Memory leak testing
- Long session stability testing
- Error handling improvements
-
-Performance Targets:
-
-OnTick handlers: < 3 active simultaneously
-Marker count: < 400 visible at once (current: ~404)
-Memory usage: < 50MB for mod
-Save file size: < 100KB per player
-
-Testing: Stress test with extended play sessions
-
-Phase 3: Chunk Progression System 🚀 FUTURE
-Goal: Multi-chunk unlocking progression (Core Vision)
-Phase 3.1: Data & Logic 🏗️ TODO
-Goal: Infrastructure for tracking multiple chunks
-
- Data structure for multiple chunks
-
- Track chunk states (locked/unlocked/completed)
- Current active chunk pointer
- Chunk completion history
- Total kills across all chunks
-
-
- Adjacent chunk detection algorithm
- Chunk unlocking logic (complete → unlock adjacent)
- Progressive kill targets per chunk
- Directional progression options (N/S/E/W priority)
-
-Data Structure:
-unlockedChunks = {
-  {minX, maxX, minY, maxY, killTarget, killsInChunk},
-  -- Additional unlocked chunks...
-}
-totalKills = cumulative count
-totalKillTarget = cumulative target
-currentChunkIndex = active chunk
-freeExpansionUnlocked = boolean
-```
+**Current Version:** v0.3.2.026  
+**Last Updated:** 2025-10-29
 
 ---
 
-### Phase 3.2: Visual System 🎨 TODO
-**Goal**: Clear visual representation of progression
+## Phase 1: Foundation ✅ COMPLETE
+**Goal**: Stable single-chunk challenge system
 
-**Design Clarification** (Updated from previous versions):
-- [ ] **Single yellow boundary** for entire unlocked area
-- [ ] Boundary expands outward as chunks unlock
-- [ ] Walls between chunks get removed automatically
-- [ ] Kill target = zombie population from most recently unlocked chunk
-- [ ] Kills anywhere in unlocked area count toward unlocking new chunk
-- [ ] Ground markers reflect current boundary state
-- [ ] Map legend for progression status
-- [ ] Smooth visual transitions on unlock
-
-**NOT doing**: ~~Multiple color coding per chunk state~~ (too complex)
-
----
-
-### Phase 3.3: UI Updates 📊 TODO
-**Goal**: Clear progression tracking
-
-- [ ] Show current chunk number (e.g., "Chunk 5 of 42")
-- [ ] Display total chunks unlocked
-- [ ] Progression percentage (% of map unlocked)
-- [ ] Chunk history viewer
-- [ ] Statistics dashboard
+### Completed ✅
+- [x] Basic ModData persistence (character-specific)
+- [x] Player spawn initialization
+- [x] Kill tracking system
+- [x] Boundary enforcement (classic & chunk mode)
+- [x] Victory condition
+- [x] Ground markers (color-coded by chunk state)
+- [x] Map symbols (continuous boundary lines)
+- [x] HUD display (collapsible, draggable, positioned at 75, 0)
+- [x] Respawn handler (recreates visuals after death)
+- [x] Event handler patterns (named functions for removal)
+- [x] Character-specific visual tracking
 
 ---
 
-## Phase 4: Challenge Varieties 🎮 FUTURE
-**Goal**: Multiple challenge types for variety
+## Phase 2: Configuration & Polish ✅ COMPLETE
+**Goal**: Configurable, user-friendly experience
 
-### Phase 4.1: Challenge Framework 🏗️ TODO
-- [ ] Challenge type enum/system
-- [ ] Per-challenge configuration storage
-- [ ] Challenge selection UI
-- [ ] Challenge-specific data structures
+### Completed ✅
+- [x] Sandbox options menu
+  - [x] Kill multiplier setting
+  - [x] Boundary size options (50-200 tiles)
+  - [x] Challenge type selection (Purge/Time/ZeroToHero)
+  - [x] Chunk unlock pattern (Cardinal/All Adjacent)
+  - [x] Enable/disable visual elements (markers, symbols, HUD)
+  - [x] Debug mode toggle
+  - [x] Time challenge target configuration
+- [x] HUD keybinding (toggle with comma key)
+- [x] Visual feedback (halo notes, color-coded chunks)
+- [x] Sound effects (level up, wall hit)
+- [x] Optimized OnTick handlers (counter-based checks)
+- [x] Efficient marker system (character-specific storage)
 
----
-
-### Phase 4.2: Challenge Types 🎯 TODO
-- [ ] **Kill Challenge** ✅ (current/default)
-- [ ] **Survival Challenge** - Survive X days in chunk
-- [ ] **Resource Challenge** - Gather specific items
-- [ ] **Base Challenge** - Build structures meeting requirements
-- [ ] **Skill Challenge** - Reach skill levels
-- [ ] **Time Trial** - Complete objectives within time limit
-- [ ] **Combo Challenge** - Multiple requirements
-
----
-
-### Phase 4.3: Challenge Rewards 🎁 TODO
-- [ ] Challenge-specific reward tables
-- [ ] Reward scaling based on difficulty
-- [ ] Rare/unique items for harder challenges
-- [ ] Random challenge generator
-- [ ] Challenge difficulty scaling system
+### Removed from Phase 2 (not needed for initial release)
+- ❌ Reward system (code errors, not core gameplay)
+- ❌ In-game UI (beyond Sandbox menu)
+- ❌ Tutorial system (moved to Phase 6)
+- ❌ Particle effects on victory (sound + color change sufficient)
+- ❌ Reward customization
 
 ---
 
-## Phase 5: Multiplayer Support 🌐 FUTURE
+## Phase 3: Chunk Progression System ✅ COMPLETE
+**Goal**: Multi-chunk unlocking progression
+
+### Completed ✅
+- [x] Adjacent chunk detection (4 cardinal directions)
+- [x] Chunk unlocking algorithm (Pattern 1: Cardinal, Pattern 2: All Adjacent)
+- [x] Progressive challenge targets per chunk
+- [x] Chunk boundary visualization (color-coded: yellow/green/blue)
+- [x] Map overview showing locked/unlocked chunks
+- [x] **Blue chunks beside ALL completed chunks** (prevents stuck situations)
+- [x] Track multiple chunks in ModData
+- [x] Current chunk pointer
+- [x] Chunk state tracking (unlocked/completed/available)
+- [x] UI shows current chunk status
+- [x] Total chunks unlocked display
+- [x] Chunk change detection
+
+---
+
+## Phase 4: Challenge Improvements 🔧 IN PROGRESS
+**Goal**: Refine and expand challenge types
+
+### Completed ✅
+- [x] **Purge Challenge** - Kill X zombies to unlock chunk
+- [x] **Time Challenge** - Spend X hours in chunk
+- [x] **Zero to Hero Challenge** - Level up skills to unlock chunks
+  - [x] Skill tracking (Build 42 XP system)
+  - [x] Unlock banking system
+  - [x] Settlement timer (1 hour after entering blue chunk)
+  - [x] Ready-to-unlock flag system
+  - [x] Auto-completion when timer expires
+
+### In Progress 🔧
+- [ ] **Purge Challenge Variants** (kill location options)
+  - [ ] Option 1: Kill counts only when player is in yellow chunk (CURRENT DEFAULT)
+  - [ ] Option 2: Kill counts only when zombie is in yellow chunk
+  - [ ] Option 3: Kill counts if either player OR zombie in yellow chunk
+  - [ ] Option 4: Kill anywhere counts toward current chunk
+- [ ] **Zero to Hero Testing**
+  - [ ] Test with modded skills to validate auto-detection works
+
+---
+
+## Phase 5: Testing for Initial Release 🧪 NEXT
+**Goal**: Quality assurance before first public release
+
+### Testing Checklist
+- [x] Fresh spawn → initialization
+- [x] Death/respawn cycle
+- [x] Save/load game
+- [ ] Long session stability (8+ hour sessions)
+- [ ] Performance with many visual markers
+- [x] All three challenge types
+- [ ] Purge challenge variants (once implemented)
+- [ ] Zero to Hero with modded skills
+- [ ] Chunk progression to 50+ chunks
+- [ ] Memory usage monitoring
+- [ ] Save file size with large chunk counts
+- [ ] Edge cases (stuck situations, boundary issues)
+- [ ] HUD functionality (drag, resize, collapse, keybind)
+- [ ] Visual markers (persistence, color accuracy, performance)
+
+---
+
+## Phase 6: Wrapping for Initial Release 📦 UPCOMING
+**Goal**: Polish and prepare for Steam Workshop
+
+### Tasks
+- [ ] Find/create mod icon (preview.png)
+- [ ] Move challenge selection from Sandbox to dedicated Challenge Menu
+- [ ] Create tutorial/onboarding system
+  - [ ] First-time player guidance
+  - [ ] Challenge explanation tooltips
+  - [ ] Controls reminder
+- [ ] Write comprehensive README
+- [ ] Create Steam Workshop description
+- [ ] Add license information
+- [ ] Final code cleanup pass
+
+---
+
+## Phase 7: Initial Release 🚀 GOAL
+**Target:** First public release on Steam Workshop
+
+### Release Checklist
+- [ ] All Phase 5 testing complete
+- [ ] All Phase 6 tasks complete
+- [ ] Version number finalized (v1.0.0)
+- [ ] Workshop listing prepared
+- [ ] Upload to Steam Workshop
+- [ ] Monitor initial feedback
+- [ ] Address critical bugs quickly
+
+---
+
+## Phase 8: New Challenge Types 🎮 POST-RELEASE
+**Goal**: Add Resource and Kitchen Sink challenges
+
+### Resource Challenge
+**Concept**: Turn in specific resources to gain points for unlock
+
+**Implementation Ideas:**
+- Trash can placed near spawn (empty tile check)
+- Destroy items in trash can to count them
+- Point system: different items = different values
+- Track cumulative points per chunk
+- Foundation for PZ Tycoon mode
+
+**Technical Considerations:**
+- Item tracking (OnObjectAdded/OnObjectRemoved events)
+- Trash can spawning logic (find empty tile)
+- Point value configuration (Sandbox options)
+- Visual feedback (item count, point progress)
+
+### Kitchen Sink Challenge
+**Concept**: Complete ALL requirements to unlock chunk
+
+**Requirements:**
+- Kill X zombies AND
+- Spend X hours AND  
+- Level up X skills AND
+- Collect X resource points
+
+**Special Rule**: When all skills are maxed (level 10), skill requirement disappears
+
+**Technical Considerations:**
+- Multi-condition tracking
+- Progressive difficulty (requirements scale with chunks unlocked)
+- UI showing all progress bars
+- Configuration options for each requirement type
+
+### Testing
+- [ ] Resource challenge basic functionality
+- [ ] Trash can spawning (empty tile detection)
+- [ ] Point system accuracy
+- [ ] Kitchen Sink multi-condition tracking
+- [ ] Kitchen Sink UI (multiple progress bars)
+- [ ] Save/load with new challenge types
+
+---
+
+## Phase 9: Release New Challenges 🚀
+**Target:** v2.0.0 - Feature expansion release
+
+### Release Checklist
+- [ ] Resource Challenge tested and stable
+- [ ] Kitchen Sink Challenge tested and stable
+- [ ] Updated documentation
+- [ ] Steam Workshop update
+- [ ] Changelog published
+
+---
+
+## Phase 10: PZ Tycoon Version 1 💰
+**Goal**: Money-based chunk unlocking system
+
+### Core Concept
+Buy chunks with in-game money instead of completing challenges.
+
+### Features
+**Pricing System:**
+- Chunk price = zombie population × multiplier
+- Base price: ~$16 per zombie (1993 Kentucky land values)
+- Scaling: Higher population = higher price
+- Example: 100 zombies in chunk = $1,600 to unlock
+
+**Economy Integration:**
+- Use vanilla trading system values
+- Item selling for money
+- Price fluctuations (optional)
+- Bulk purchase discounts (unlock multiple chunks)
+
+**Configuration:**
+- Price multiplier (Sandbox option)
+- Base price per zombie
+- Enable/disable price scaling
+- Discount thresholds
+
+### Technical Considerations
+- Money tracking (player:getMoney())
+- Transaction system (deduct money, unlock chunk)
+- Price calculation based on zombie count
+- UI showing chunk prices before purchase
+- "Shop" menu for chunk purchases
+
+### Testing
+- [ ] Money deduction works correctly
+- [ ] Chunk prices calculated accurately
+- [ ] Price scaling functions properly
+- [ ] Save/load preserves purchases
+- [ ] Economy balance testing
+
+---
+
+## Phase 11: PZ Tycoon Version 2 🏪 (LONG SHOT)
+**Goal**: NPC vendor system for chunk unlocking
+
+**Note:** Will likely work on **Nutrition Tweak** mod before this phase.
+
+### Core Concept
+Vendor NPCs that need to be fed and protected to buy chunk unlocks.
+
+### Features
+**NPC Vendors:**
+- Spawn at designated location
+- Require food to stay alive
+- Can be killed (challenge fails if all die)
+- Sell chunk unlocks for money
+
+**NPC Behavior:**
+- Hunger system (must be fed regularly)
+- Health system (can be attacked by zombies)
+- Death handling (respawn after milestone?)
+- Trading interface (buy chunks)
+
+**Milestone System:**
+- Respawn vendor after X chunks unlocked
+- Multiple vendors possible
+- Vendor upgrades (better prices, bulk deals)
+
+### Technical Considerations
+- Use NPCs from existing mods as reference:
+  - Bandits mod
+  - Day One mod
+  - Week One mod
+- NPC AI integration
+- Food consumption mechanics
+- Death/respawn logic
+- Trading UI adaptation
+
+### Challenges
+- High complexity (NPC AI)
+- Balance issues (keeping NPCs alive)
+- Multiplayer implications
+- Performance with multiple NPCs
+
+---
+
+## Phase 12: Multiplayer Support (IF READY) 👥
 **Goal**: Full multiplayer compatibility
 
-**Status**: Waiting for Build 42 multiplayer release
+**Note:** May only implement for all challenges MINUS PZ Tycoon variants
 
-### Phase 5.1: Core Multiplayer 🔧 TODO
+### Requirements
 - [ ] Server-side state synchronization
-- [ ] Per-player challenge tracking
-- [ ] Player-specific visual markers
+- [ ] Per-player challenge tracking (already character-specific!)
 - [ ] Shared vs separate chunk unlocking decision
-- [ ] Server restart recovery
-
----
-
-### Phase 5.2: Multiplayer Features 👥 TODO
-- [ ] Admin commands (reset, unlock, complete)
+- [ ] Multiplayer testing
+- [ ] Admin commands
 - [ ] Server configuration options
-- [ ] Player join/leave handling
-- [ ] Spectator mode for completed players
 
----
-
-### Phase 5.3: Testing 🧪 TODO
+### Testing Needed
 - [ ] 2-player testing
 - [ ] 4+ player testing
-- [ ] Stress testing (10+ players)
-- [ ] Network latency handling
+- [ ] Server restart recovery
+- [ ] Player join/leave handling
+- [ ] Chunk state sync accuracy
+- [ ] Performance with multiple active challenges
+
+### Implementation Approach
+**Option A: Shared Chunks**
+- All players work together on same chunks
+- Kills/time/resources pool together
+- Faster progression, cooperative gameplay
+
+**Option B: Separate Chunks**
+- Each player has own chunk progression
+- Independent challenges
+- Slower progression, individual gameplay
+
+**Option C: Hybrid**
+- Sandbox option to choose mode
+- Server admin decides
 
 ---
 
-## Future Ideas (Parking Lot) 💡
-**Not prioritized - ideas for post-v1.0 consideration**
+## Spawner System (Ongoing Improvements) 🧟
+**Goal**: Intelligent zombie spawning with minimal frustration
 
-### Additional Challenge Types
+### Completed ✅
+- [x] Basic zombie spawner (spawns outside chunk)
+- [x] Sound wave system (attracts zombies)
+- [x] Stuck detection (non-approaching waves counter)
+- [x] Backup spawn when zombie stuck (10 waves)
+- [x] Directional spawn tracking (prevents repeated stuck directions)
+- [x] Attack detection (zombie attacking structure vs approaching player)
+- [x] Spawn delay system (30-min cooldown after chunk entry)
+- [x] HUD debug info (closest zombie, spawn stats, stuck tracking)
 
-#### Zero to Hero (Skill Challenge)
-- Unlock chunks by leveling skills
-- Each skill level increase unlocks one chunk
-- Sandbox option: Configure levels required per unlock
-- **Challenge**: Handle multiple skills leveling before player selects which chunk to unlock
-- Ultimate goal: Free exploration when all skills maxed
-- Data structure needed: Queue/store multiple pending unlocks
-
-#### Resource Challenge (Golden Tickets)
-- **Concept**: Very rare items (like Spiffo plushies) can be traded/consumed for instant chunk unlock
-- Function as "golden tickets" - bypass normal challenge requirements
-- Optional task list UI: "Rare Items Found: 2/10" (separate from main challenge)
-- Can be given to vendor (Phase 7 economy) or consumed directly
-- Gives additional function to decorative collectibles beyond aesthetics
-- **Implementation note**: Must be location-independent (some items impossible to find in certain areas)
-- Sandbox options: Enable/disable, configure which items count, set unlock cost per item
-- Examples: Spiffo plushies, rare toys, collector items, special magazines
-- Balance: Should be genuinely rare so they don't trivialize progression
-
-#### Economy System (PZ Tycoon Mode)
-- Buy chunks with in-game money instead of killing zombies
-- Chunk price = zombie population × multiplier
-- Base price: ~$16 (1993 Kentucky land values)
-- Scaling: Higher population = higher price
-- Trading system integration
-- Item selling values
-- Price fluctuations
-- Bulk purchase discounts
+### Planned Improvements 🎯
+- [ ] **Dynamic Spawn Distance** (NEW - HIGH PRIORITY)
+  - [ ] Start spawning zombies FAR from chunk (e.g., 100+ tiles)
+  - [ ] Only move spawn point CLOSER if zombie gets stuck
+  - [ ] Gradually reduce distance on each stuck spawn (100 → 90 → 80 → ...)
+  - [ ] Minimum distance threshold (never closer than 30 tiles)
+  - [ ] Reset to far distance when entering new chunk
+  - [ ] Benefits: Makes early chunks feel safer, only spawns close when needed
+- [ ] Improved pathfinding check before spawn
+- [ ] Structure destruction tracking (health monitoring)
+- [ ] Functionally indestructible structure detection (1 hour no damage)
+- [ ] Smart spawn location selection (avoid known stuck spots)
 
 ---
 
-### Challenge Variations
+## Technical Debt & Known Issues
 
-#### Challenge Streaks
-- Randomized or predefined rotation of challenge types
-- Example: Kill → Economy → Time → Kill (repeating pattern)
-- Random mode: Each unlock triggers different random challenge
-- Predefined mode: Set sequence in Sandbox options
+### High Priority 🔴
+- [ ] Remove reward system code (currently has errors)
+- [ ] Implement dynamic spawn distance system
 
-#### Boss Zombies
-- Special powerful zombies in chunks (requires integration with other mods)
+### Medium Priority 🟡
+- [ ] Further OnTick optimization (reduce check frequency where possible)
+- [ ] Marker count optimization for large chunk counts
+- [ ] Save file size monitoring (test with 50+ chunks)
+- [ ] Long session testing (8+ hours)
 
-#### Curve Balls/Environmental Hazards
-- Warnings of upcoming changes
-- Zombie stat modifications (strength, toughness, speed, memory)
-- Integration with special zombie mods
-- Environmental dangers (sunlight damage, darkness effects)
-- Requires other mods as dependencies
+### Low Priority 🟢
+- [ ] Code style consistency pass
+- [ ] Additional inline documentation
+- [ ] Function naming review
 
----
-
-### Meta-Progression & Rewards
-- **Achievement System**: Track accomplishments beyond chunk unlocks
-- **Prestige System**: Reset with permanent bonuses
-- **Leaderboards**: Fastest completions, fewest deaths (local tracking)
+### Build 42 Compatibility ✅
+- [x] Replaced deprecated `getPerks()` with XP system
+- [x] Tested teleportation method (Build 42 pattern)
+- [x] Verified all API calls work in Build 42
 
 ---
 
-### UI & Polish
-- **In-Game Configuration UI**: Separate from Sandbox menu for mid-game adjustments
-- **Particle Effects**: Visual flair on victory, unlock events
-- **Tutorial System**: Interactive onboarding for new players
-- **Challenge Mutators**: Special conditions/modifiers for chunks
+## Performance Metrics
+
+### Current Status ✅
+- OnTick handlers: 3 active (boundary check, time tracking, skill tracking)
+- Marker count: ~200-400 per character (depends on unlocked chunks)
+- Memory usage: Unknown (needs testing)
+- Save file size: Unknown (needs testing)
+
+### Targets
+- OnTick handlers: < 5 active simultaneously
+- Marker count: < 500 visible at once
+- Memory usage: < 100MB for mod
+- Save file size: < 200KB per player (50+ chunks)
 
 ---
 
-### Advanced Features
-- Challenge difficulty tiers (Easy/Normal/Hard per chunk)
-- Timed events (survive horde, rescue missions)
-- Custom chunk shapes (beyond square boundaries)
-- Chunk biomes/themes with unique challenges
-- NPC interaction challenges
+## Version History
+
+### v0.3.2.026 (Current) - 2025-10-29
+- HUD position moved to (75, 0)
+- Roadmap restructured for initial release
+- Removed reward system (temporary)
+
+### v0.3.2.025 - 2025-10-29
+- Blue chunk expansion (beside ALL green chunks)
+- Prevents stuck situations in chunk mode
+- All three challenge types tested and working
+
+### v0.3.2.024 - 2025-10-29
+- Zero to Hero challenge fully implemented
+- Settlement timer system
+- Ready-to-unlock flag system
+- Skill tracking with Build 42 XP system
+- Unlock banking system
+
+### v0.3.2.002 - 2025-10-XX
+- Chunk progression system implemented
+- Time challenge implemented
+- Chunk mode functional
+
+### v0.1-alpha
+- Initial prototype
+- Single chunk system
+- Basic kill tracking (Purge only)
+- Boundary enforcement
+- Visual feedback
 
 ---
 
-## Performance Targets ⚡
+## Planned Release Schedule
 
-### Optimization Goals
-- **OnTick handlers**: < 3 active simultaneously
-- **Marker count**: < 400 visible at once
-- **Memory usage**: < 50MB for mod data
-- **Save file size**: < 100KB per player
-- **Frame rate impact**: < 5 FPS drop with all features active
-- **Load time**: < 2 seconds for mod initialization
-
-### Performance Testing Checklist
-- [ ] Monitor FPS with all visual elements enabled
-- [ ] Test with maximum unlocked chunks (50+ chunks)
-- [ ] Profile memory usage over long sessions (10+ hours)
-- [ ] Verify save/load times remain acceptable
-- [ ] Check for memory leaks (run memory profiler)
-- [ ] Test performance on low-end systems
-
-### Known Performance Considerations
-- OnTick handlers are expensive - minimize usage
-- Ground markers add rendering overhead - cap total count
-- Zombie population queries should be cached (5-minute intervals)
-- Boundary checks should only run near chunk edges
-- Visual elements should lazy-load (only render nearby chunks)
+- **v0.4.0** (Phase 4 complete): Purge variants + ZtH testing → ~1-2 weeks
+- **v1.0.0** (Phases 5-7 complete): Initial public release → ~2-4 weeks
+- **v2.0.0** (Phases 8-9 complete): Resource + Kitchen Sink challenges → ~2-3 months
+- **v3.0.0** (Phase 10 complete): PZ Tycoon v1 → ~4-6 months
+- **v4.0.0** (Phase 12 complete): Multiplayer support → TBD
 
 ---
 
-## Development Standards & Best Practices 📋
+## Development Notes
 
-### Code Organization
-- One responsibility per file
-- SpawnChunk namespace for all functions
-- ModData only for persistent state
-- Named functions for event handlers (enables proper removal)
-- Defensive coding with nil checks
-- Clear debug output with file/function prefixes
+### Architecture Decisions
+- **Character-specific data**: Prevents conflicts in multiplayer, allows per-player progression
+- **ModData persistence**: Reliable save system, automatic with player saves
+- **Named event handlers**: Allows proper removal, prevents memory leaks
+- **Flag-based unlock system** (ZtH): Single source of truth, prevents timer bypasses
+- **Chunk scanning** (blue expansion): Prevents stuck situations, scales well
 
-### Testing Checklist (Every Code Change)
-- [ ] Fresh spawn initialization
-- [ ] Player death/respawn cycle
-- [ ] Save game / load game
-- [ ] Victory condition trigger
-- [ ] Visual elements persist correctly
-- [ ] No console errors
-- [ ] Performance acceptable (especially OnTick handlers)
+### Lessons Learned
+- Build 42 API changes require XP system instead of getPerks()
+- Teleportation needs setLastX/Y/Z for stability
+- Visual markers need character-specific storage for multiplayer
+- Timer-based checks should use counters to reduce OnTick load
+- Chunk mode requires careful boundary calculation for non-square layouts
+- Reward system adds complexity without improving core gameplay loop
 
-### File Modification Rules
-When providing code changes:
-1. Always show complete files (no truncation)
-2. Include all existing code
-3. Add comments explaining PZ-specific API usage
-4. Note integration points with other files
-5. Preserve existing functionality unless specifically changing it
-
----
-
-## File Structure Reference 📁
-```
-SpawnChunkChallenges/42.0/media/lua/client/
-├── SpawnChunk_Data.lua      # ModData persistence
-├── SpawnChunk_Init.lua      # Initialization & death reset
-├── SpawnChunk_Kills.lua     # Kill tracking & victory
-├── SpawnChunk_Boundary.lua  # Teleportation enforcement
-└── SpawnChunk_Visual.lua    # UI, markers, HUD
-```
-
-**Design Principle**: One responsibility per file, SpawnChunk namespace for all functions
-
----
-
-## Version History 📜
-
-### v0.1-alpha ✅ (Current - 2025-10-20)
-**Phase 1 Complete**
-- Single chunk challenge system
-- Kill tracking with dynamic targets
-- Boundary enforcement with teleportation
-- Visual feedback (ground + map + HUD)
-- Victory celebration and cleanup
-- Death reset with visual recreation
-- Player symbol preservation
-
-### Planned Versions
-- **v0.2-alpha**: Phase 2.1-2.2 (Sandbox options, enhanced feedback)
-- **v0.3-alpha**: Phase 2.3 + 3.1 (Polish + chunk progression foundation)
-- **v0.4-alpha**: Phase 3.2-3.3 (Full chunk progression system)
-- **v0.5-beta**: Phase 4 (Challenge varieties)
-- **v0.9-beta**: Phase 5 (Multiplayer support)
-- **v1.0-release**: Stable, polished, fully tested
-
----
-
-## Roadmap Version History 📝
-
-### Version 4.0 (2025-10-20) - **CURRENT**
-**Major Changes**:
-- ✅ Marked Phase 1 as COMPLETE
-- ✅ Updated Phase 1 with actual completion status
-- ✅ Clarified victory rewards NOT implemented (just free exploration)
-- ✅ Removed kill notification sounds from Phase 2.2 (base game sufficient)
-- ✅ Clarified Phase 3.2 visual system: single yellow boundary (no multi-color chunks)
-- ✅ Marked victory celebration sound as complete
-- ✅ Preserved all Future Ideas from v3.0
-- ✅ Maintained 10-phase structure
-- ✅ Kept performance targets and development standards
-
-### Version 3.0 (2025-10-18)
-- Restructured into 10 distinct phases (0-10)
-- Added Phase 0: Initial Setup & Pipeline Validation
-- Added Phase 4: Challenge Refinement & Polish
-- Clarified Phase 7 as PZ Tycoon Mode (economy system)
-- Expanded Future Ideas with detailed concepts
-- Restored Performance Targets section
-- Dropped Base Challenge (too complex to implement)
-
-### Version 2.0 (Previous)
-- Original GitHub version
-- 6 phases with different structure
-- Included all challenge types in main phases
-
-### Version 1.0 (Initial)
-- First draft roadmap
-- Basic phase structure
-
----
-
-## Development Workflow 🔄
-
-### Tools Used
-1. **GitHub CoPilot** (Cursor IDE) - Primary code generation
-2. **Claude** (Claude.ai Pro) - Planning, architecture, debugging walls
-3. **Cursor AI** - Last resort for complex debugging
-
-### Workflow Pattern
-```
-Planning → CoPilot (code) → Test → Hit Wall?
- ↓
- Yes → Claude (debug) → Still stuck? → Cursor AI
- ↓
- No → Commit & Continue
-```
-
-### For Claude Sessions
-When returning to Claude after CoPilot work:
-
-**Template**:
-```
-Working on [feature].
-
-File index: https://raw.githubusercontent.com/.../CLAUDE_ACCESS_URLS.md?cache-bust=YYYYMMDD
-
-CoPilot Changes:
-- [file1]: [description of changes]
-- [file2]: [description of changes]
-
-Status: [working / has issues / need review]
-Next: [what you want to accomplish]
+### Future Considerations
+- Chunk size flexibility (currently hardcoded to boundarySize)
+- Diagonal chunk unlocking (currently cardinal only)
+- Chunk difficulty scaling formula
+- Save file compression for large chunk counts
+- Integration with base game progression systems
+- Challenge menu UI (better than Sandbox for selection)

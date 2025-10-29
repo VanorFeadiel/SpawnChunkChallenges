@@ -1,12 +1,12 @@
 -- SpawnChunk_Data.lua
 -- Persistent data management (saves across sessions)
 -- CHARACTER-SPECIFIC DATA - Each character gets their own challenge state
---modversion=0.3.2.024
+--modversion=0.3.2.026
 
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.2.002"
+SpawnChunk.MOD_VERSION = "0.3.2.026"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 
@@ -75,8 +75,8 @@ function SpawnChunk.getData()
         challengeStuckFlag = false,     -- True if all 4 directions have stuck zombies
         
         -- HUD window state (persistent)
-        hudWindowX = 160,               -- Window X position
-        hudWindowY = 20,                -- Window Y position
+        hudWindowX = 75,               -- Window X position
+        hudWindowY = 0,                -- Window Y position
         hudWindowWidth = 450,           -- Window width
         hudWindowHeight = 500,          -- Window height
         hudMinimized = false,           -- Whether window is minimized

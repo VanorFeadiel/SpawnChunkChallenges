@@ -1,7 +1,7 @@
--- SpawnChunk_Kills.lua
--- Track zombie kills and check for victory
+-- SpawnChunk_Progress.lua
+-- Track challenge progress and completion
 -- CHARACTER-SPECIFIC via getData()
---modversion=0.3.2.024
+--modversion=0.3.2.027
 
 SpawnChunk = SpawnChunk or {}
 
@@ -124,79 +124,92 @@ function SpawnChunk.onChunkComplete(chunkKey)
     inv:AddItem("Base.WaterBottleFull")
     --inv:AddItem("Base.Bandage")  --commented out for now keep in code as extra example.
     
-    -- Get adjacent chunks
-    local adjacentChunks = SpawnChunk.getAdjacentChunks(chunkKey)
-    
-    -- Unlock adjacent chunks based on sandbox setting
-    local unlockPattern = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ChunkUnlockPattern) or 1
-    
-    -- Pattern 1: Cardinal - mark as available (player chooses direction by walking)
-    -- Pattern 2: All adjacent - unlock immediately (all 4 directions)
-    
+    -- === NEW LOGIC: Scan ALL completed chunks and make their unlocked neighbors available ===
+    -- This prevents the player from getting stuck when surrounded by completed chunks
     local newChunksUnlocked = 0
-    for direction, adjacentKey in pairs(adjacentChunks) do
-        -- Check if chunk is already unlocked or available
-        local adjacentData = SpawnChunk.getChunkData(adjacentKey)
-        if not adjacentData or (not adjacentData.unlocked and not adjacentData.available) then
-            local newChunk
-            
-            if unlockPattern == 1 then
-                -- Pattern 1 (Cardinal): Mark as available, will unlock when player enters
-                newChunk = SpawnChunk.makeChunkAvailable(adjacentKey)
-            else
-                -- Pattern 2 (All Adjacent): Unlock immediately  
-                newChunk = SpawnChunk.unlockChunk(adjacentKey)
+    
+    if data.chunks then
+        -- Iterate through ALL chunks
+        for scanChunkKey, scanChunkData in pairs(data.chunks) do
+            -- Only process completed (green) chunks
+            if scanChunkData.completed then
+                -- Get the 4 cardinal neighbors of this completed chunk
+                local adjacentChunks = SpawnChunk.getAdjacentChunks(scanChunkKey)
+                
+                for direction, adjacentKey in pairs(adjacentChunks) do
+                    local adjacentData = SpawnChunk.getChunkData(adjacentKey)
+                    
+                    -- Only make available if the chunk is NOT already:
+                    -- - unlocked (yellow/green)
+                    -- - available (blue)
+                    -- - completed (green)
+                    local shouldMakeAvailable = not adjacentData or 
+                        (not adjacentData.unlocked and not adjacentData.available and not adjacentData.completed)
+                    
+                    if shouldMakeAvailable then
+                        local newChunk
+                        
+                        if unlockPattern == 1 then
+                            -- Pattern 1 (Cardinal): Mark as available (blue)
+                            newChunk = SpawnChunk.makeChunkAvailable(adjacentKey)
+                        else
+                            -- Pattern 2 (All Adjacent): Unlock immediately  
+                            newChunk = SpawnChunk.unlockChunk(adjacentKey)
+                        end
+                        
+                        -- Initialize chunk data based on challenge type
+                        if data.challengeType == "Purge" then
+                            -- PURGE CHALLENGE: Calculate kill target for new chunk
+                            local cell = getCell()
+                            local zombieList = cell and cell:getZombieList()
+                            local totalZombies = zombieList and zombieList:size() or 100
+                            local baseTarget = math.floor(totalZombies / 9)
+                            
+                            local boundarySize = data.boundarySize
+                            local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1)
+                            local baselineArea = 101 * 101
+                            local areaMultiplier = boundaryArea / baselineArea
+                            
+                            local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
+                            local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
+                            if target < 5 then target = 5 end
+                            
+                            newChunk.killTarget = target
+                            newChunk.killCount = 0
+                            
+                            print("[" .. username .. "] Made chunk available: " .. adjacentKey .. " (beside completed " .. scanChunkKey .. ") - Kill target: " .. target)
+                            
+                        elseif data.challengeType == "Time" then
+                            -- TIME CHALLENGE: Set time target for new chunk
+                            newChunk.timeHours = 0
+                            newChunk.timeTarget = data.timeTarget or 12
+                            
+                            -- Set kill fields to 0 (not used, but kept for compatibility)
+                            newChunk.killTarget = 0
+                            newChunk.killCount = 0
+                            
+                            print("[" .. username .. "] Made chunk available: " .. adjacentKey .. " (beside completed " .. scanChunkKey .. ") - Time target: " .. newChunk.timeTarget .. " hours")
+                            
+                        elseif data.challengeType == "ZeroToHero" then
+                            -- ZERO TO HERO: Uses banking system, doesn't need per-chunk tracking
+                            -- Set fields to 0 for compatibility
+                            newChunk.killTarget = 0
+                            newChunk.killCount = 0
+                            newChunk.timeHours = 0
+                            newChunk.timeTarget = 0
+                            
+                            print("[" .. username .. "] Made chunk available: " .. adjacentKey .. " (beside completed " .. scanChunkKey .. ") - Zero to Hero (banking)")
+                        end
+                        
+                        newChunksUnlocked = newChunksUnlocked + 1
+                    end
+                end
             end
-            
-            -- Initialize chunk data based on challenge type
-            if data.challengeType == "Purge" then
-                -- PURGE CHALLENGE: Calculate kill target for new chunk
-                local cell = getCell()
-                local zombieList = cell and cell:getZombieList()
-                local totalZombies = zombieList and zombieList:size() or 100
-                local baseTarget = math.floor(totalZombies / 9)
-                
-                local boundarySize = data.boundarySize
-                local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1)
-                local baselineArea = 101 * 101
-                local areaMultiplier = boundaryArea / baselineArea
-                
-                local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
-                local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
-                if target < 5 then target = 5 end
-                
-                newChunk.killTarget = target
-                newChunk.killCount = 0
-                
-                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Kill target: " .. target)
-                
-            elseif data.challengeType == "Time" then
-                -- TIME CHALLENGE: Set time target for new chunk
-                newChunk.timeHours = 0
-                newChunk.timeTarget = data.timeTarget or 12
-                
-                -- Set kill fields to 0 (not used, but kept for compatibility)
-                newChunk.killTarget = 0
-                newChunk.killCount = 0
-                
-                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Time target: " .. newChunk.timeTarget .. " hours")
-                
-            elseif data.challengeType == "ZeroToHero" then
-                -- ZERO TO HERO: Uses banking system, doesn't need per-chunk tracking
-                -- Set fields to 0 for compatibility
-                newChunk.killTarget = 0
-                newChunk.killCount = 0
-                newChunk.timeHours = 0
-                newChunk.timeTarget = 0
-                
-                print("[" .. username .. "] Unlocked adjacent chunk: " .. adjacentKey .. " (direction: " .. direction .. ") - Zero to Hero (banking)")
-            end
-            
-            newChunksUnlocked = newChunksUnlocked + 1
         end
     end
     
-    print("[" .. username .. "] Unlocked " .. newChunksUnlocked .. " new chunk(s)")
+    print("[" .. username .. "] Made " .. newChunksUnlocked .. " chunk(s) available (beside ALL completed chunks)")
+    
     -- Force immediate marker refresh to show available chunks (especially for Time/ZtH)
     if data.challengeType ~= "Purge" then
         -- Non-Purge challenges: Immediately mark for recreation (no delay needed without spawner)
@@ -204,7 +217,7 @@ function SpawnChunk.onChunkComplete(chunkKey)
         data.mapSymbolCreated = false
     end
     
--- Reset sound system when switching to new chunks
+    -- Reset sound system when switching to new chunks
     data.currentSoundRadius = 0
     data.lastClosestZombieDistance = nil
     data.consecutiveNonApproachingWaves = 0
@@ -249,6 +262,7 @@ function SpawnChunk.onChunkComplete(chunkKey)
     end
     Events.OnTick.Add(recreateVisuals)
 end
+
 -----------------------  VICTORY CONDITION  ---------------------------
 
 function SpawnChunk.onVictory()

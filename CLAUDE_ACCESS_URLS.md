@@ -12,47 +12,49 @@ This file contains direct GitHub URLs to all files in the SpawnChunkChallenges r
 ### Core Mod Files (Workshop Structure)
 
 **Root Level (Steam Workshop):**
-- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/mod.info?v=20251028
-- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/icon.png?v=20251028
-- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/poster.png?v=20251028
-- **workshop.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/workshop.txt?v=20251028
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/mod.info?v=latest
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/icon.png?v=latest
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/poster.png?v=latest
+- **workshop.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/workshop.txt?v=latest
 
 **Mod Level (PZ Recognition):**
-- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/mod.info?v=20251028
-- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/icon.png?v=20251028
-- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/poster.png?v=20251028
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/mod.info?v=latest
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/icon.png?v=latest
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/poster.png?v=latest
 
 **Build 42 Level (Build-specific):**
-- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/mod.info?v=20251028
-- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/icon.png?v=20251028
-- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/poster.png?v=20251028
-- **README.md**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/README.md?v=20251028
+- **mod.info**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/mod.info?v=latest
+- **icon.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/icon.png?v=latest
+- **poster.png**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/poster.png?v=latest
+- **README.md**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/README.md?v=latest
 ### Sandbox Configuration
-- **Sandbox Options**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/sandbox-options.txt?v=20251028
-- **English Translation**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/Translate/EN/Sandbox_EN.txt?v=20251028
+- **Sandbox Options**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/sandbox-options.txt?v=latest
+- **English Translation**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/shared/Translate/EN/Sandbox_EN.txt?v=latest
 
 ### Documentation
-- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md?v=20251028
-- **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md?v=20251028
-- **Template for Cursor**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/CURSOR_CHAT_TEMPLATE.md?v=20251028
+- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md?v=latest
+- **Development Roadmap**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/DEVELOPMENT_ROADMAP.md?v=latest
+- **Template for Cursor**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/CURSOR_CHAT_TEMPLATE.md?v=latest
 ### LUA Scripts (Client-side) - RAW URLs FOR CLAUDE
 
 **Use these RAW URLs (Claude can access these):**
-- **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Boundary.lua?v=20251028
-- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua?v=20251028 (NEW - Challenge system)
-- **SpawnChunk_ChunkEntry.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_ChunkEntry.lua?v=20251028
-- **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Data.lua?v=20251028
-- **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Init.lua?v=20251028
-- **SpawnChunk_Kills.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Kills.lua?v=20251028
-- **SpawnChunk_Spawner.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Spawner.lua?v=20251028
-- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua?v=20251028
+- **SpawnChunk_Boundary.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Boundary.lua?v=latest
+- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua?v=latest (NEW - Challenge system)
+- **SpawnChunk_ChunkEntry.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_ChunkEntry.lua?v=latest
+- **SpawnChunk_Data.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Data.lua?v=latest
+- **SpawnChunk_Init.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Init.lua?v=latest
+- **SpawnChunk_Progress.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Progress.lua?v=latest
+- **SpawnChunk_Spawner.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Spawner.lua?v=latest
+- **SpawnChunk_Visual.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Visual.lua?v=latest
 
+
+SpawnChunk_Progress.lua
 ### Development Automation Scripts
-- **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh?v=20251028
-- **batch-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/batch-update.sh?v=20251028
-- **new-file.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/new-file.sh?v=20251028
-- **get-claude-urls.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/get-claude-urls.sh?v=20251028
-- **review-template.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/review-template.txt?v=20251028
+- **quick-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/quick-update.sh?v=latest
+- **batch-update.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/batch-update.sh?v=latest
+- **new-file.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/new-file.sh?v=latest
+- **get-claude-urls.sh**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/get-claude-urls.sh?v=latest
+- **review-template.txt**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/review-template.txt?v=latest
 
 ## Usage Instructions for Claude
 
@@ -85,7 +87,7 @@ ProjectZomboidMod/                           # Git repo root / Workshop folder
 │                       │   ├── SpawnChunk_Boundary.lua
 │                       │   ├── SpawnChunk_Data.lua
 │                       │   ├── SpawnChunk_Init.lua
-│                       │   ├── SpawnChunk_Kills.lua
+│                       │   ├── SpawnChunk_Progress.lua
 │                       │   ├── SpawnChunk_Spawner.lua
 │                       │   └── SpawnChunk_Visual.lua
 │                       ├── server/          # Server-side LUA scripts
@@ -220,6 +222,6 @@ The repository includes automation scripts to streamline the development workflo
 5. Later: Convert to Challenge menu entries (better UX)
 
 ### 📁 Updated File URLs for Claude
-- **Testing Handoff**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/TESTING_HANDOFF_v0.3.2.md?v=20251028
-- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md?v=20251028
-- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua?v=20251028
+- **Testing Handoff**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/TESTING_HANDOFF_v0.3.2.md?v=latest
+- **Challenge System Summary**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/CHALLENGE_SYSTEM_SUMMARY.md?v=latest
+- **SpawnChunk_Challenges.lua**: https://raw.githubusercontent.com/VanorFeadiel/SpawnChunkChallenges/main/contents/mods/SpawnChunkChallenges/42.0/media/lua/client/SpawnChunk_Challenges.lua?v=latest

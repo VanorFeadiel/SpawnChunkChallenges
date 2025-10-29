@@ -1,6 +1,6 @@
 -- SpawnChunk_Challenges.lua
 -- Challenge type system and progress tracking for Purge, Time, and Zero to Hero challenges
---modversion=0.3.2.024
+--modversion=0.3.2.026
 
 SpawnChunk = SpawnChunk or {}
 
