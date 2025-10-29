@@ -73,8 +73,8 @@ function SpawnChunk.getData()
         challengeStuckFlag = false,     -- True if all 4 directions have stuck zombies
         
         -- HUD window state (persistent)
-        hudWindowX = 180,               -- Window X position
-        hudWindowY = 30,                -- Window Y position
+        hudWindowX = 160,               -- Window X position
+        hudWindowY = 20,                -- Window Y position
         hudWindowWidth = 450,           -- Window width
         hudWindowHeight = 500,          -- Window height
         hudMinimized = false,           -- Whether window is minimized
@@ -265,57 +265,42 @@ function SpawnChunk.getDistanceToAllowedBoundary(playerX, playerY)
         return data.boundarySize - math.max(dx, dy)
     end
     
-    -- In chunk mode, find bounding box of all unlocked + available chunks
-    local minChunkX, maxChunkX = nil, nil
-    local minChunkY, maxChunkY = nil, nil
+    -- In chunk mode, find the CLOSEST edge of ANY unlocked/available chunk
+    local minDistance = nil
     
     if data.chunks then
         for chunkKey, chunkData in pairs(data.chunks) do
             -- Include both unlocked and available chunks (player is allowed in both)
             if chunkData.unlocked or chunkData.available then
-                local coords = SpawnChunk.parseChunkKey(chunkKey)
-                if coords then
-                    if not minChunkX or coords.chunkX < minChunkX then minChunkX = coords.chunkX end
-                    if not maxChunkX or coords.chunkX > maxChunkX then maxChunkX = coords.chunkX end
-                    if not minChunkY or coords.chunkY < minChunkY then minChunkY = coords.chunkY end
-                    if not maxChunkY or coords.chunkY > maxChunkY then maxChunkY = coords.chunkY end
+                local minX, minY, maxX, maxY = SpawnChunk.getChunkBounds(chunkKey, data)
+                
+                if minX then
+                    -- Calculate distance to each edge of THIS chunk
+                    local distToWest = playerX - minX
+                    local distToEast = maxX - playerX
+                    local distToNorth = playerY - minY
+                    local distToSouth = maxY - playerY
+                    
+                    -- Get minimum distance to any edge of THIS chunk
+                    local chunkMinDistance = math.min(distToWest, distToEast, distToNorth, distToSouth)
+                    
+                    -- Update overall minimum if this chunk is closer
+                    if not minDistance or chunkMinDistance > minDistance then
+                        minDistance = chunkMinDistance
+                    end
                 end
             end
         end
     end
     
     -- If no unlocked chunks found, fallback to spawn point
-    if not minChunkX then
+    if not minDistance then
         local dx = math.abs(playerX - data.spawnX)
         local dy = math.abs(playerY - data.spawnY)
         return data.boundarySize - math.max(dx, dy)
     end
     
-    -- Calculate world coordinates of the bounding box edges
-    -- Each chunk extends boundarySize tiles from its center
-    local boundarySize = data.boundarySize
-    local chunkSize = (boundarySize * 2) + 1
-    
-    -- Get world coordinates of bounding box
-    local minCenterX = data.spawnX + (minChunkX * chunkSize)
-    local maxCenterX = data.spawnX + (maxChunkX * chunkSize)
-    local minCenterY = data.spawnY + (minChunkY * chunkSize)
-    local maxCenterY = data.spawnY + (maxChunkY * chunkSize)
-    
-    -- Extend to actual boundaries (center ± boundarySize)
-    local westBoundary = minCenterX - boundarySize
-    local eastBoundary = maxCenterX + boundarySize
-    local northBoundary = minCenterY - boundarySize
-    local southBoundary = maxCenterY + boundarySize
-    
-    -- Calculate distance to each edge
-    local distToWest = playerX - westBoundary
-    local distToEast = eastBoundary - playerX
-    local distToNorth = playerY - northBoundary
-    local distToSouth = southBoundary - playerY
-    
-    -- Return the minimum distance (closest edge)
-    return math.min(distToWest, distToEast, distToNorth, distToSouth)
+    return minDistance
 end
 
 -----------------------  DEBUG FUNCTIONS  ---------------------------

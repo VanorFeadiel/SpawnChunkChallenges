@@ -125,3 +125,11 @@ option SpawnChunkChallenge.TimeInAnyChunk
     page = SpawnChunkChallenge,
     translation = SpawnChunkChallenge_TimeInAnyChunk,
 }
+
+option SpawnChunkChallenge.EnableSpawnerForAllChallenges
+{
+    type = boolean,
+    default = false,
+    page = SpawnChunkChallenge,
+    translation = SpawnChunkChallenge_EnableSpawnerForAllChallenges,
+}

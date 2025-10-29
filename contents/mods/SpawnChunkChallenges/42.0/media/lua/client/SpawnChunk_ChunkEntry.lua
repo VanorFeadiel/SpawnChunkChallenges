@@ -52,9 +52,19 @@ function SpawnChunk.checkChunkEntry()
         -- Update current chunk
         data.currentChunk = playerChunkKey
         
-        -- Show notification
-        pl:setHaloNote("Unlocked " .. playerChunkKey .. "! Kill " .. playerChunkData.killTarget .. " zombies to complete.", 100, 255, 100, 300)
-        
+-- Show notification (challenge-specific message)
+        local message
+        if data.challengeType == "Purge" then
+            message = "Unlocked " .. playerChunkKey .. "! Kill " .. playerChunkData.killTarget .. " zombies to complete."
+        elseif data.challengeType == "Time" then
+            message = "Unlocked " .. playerChunkKey .. "! Survive " .. (playerChunkData.timeTarget or data.timeTarget) .. " hours to complete."
+        elseif data.challengeType == "ZeroToHero" then
+            message = "Unlocked " .. playerChunkKey .. "! Level up skills to unlock more chunks."
+        else
+            message = "Unlocked " .. playerChunkKey .. "!"
+        end
+        pl:setHaloNote(message, 100, 255, 100, 300)  
+		
         -- In Cardinal mode (Pattern 1), lock the other available chunks
         local unlockPattern = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ChunkUnlockPattern) or 1
         if unlockPattern == 1 then

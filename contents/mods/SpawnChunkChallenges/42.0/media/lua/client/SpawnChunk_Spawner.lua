@@ -284,7 +284,15 @@ function SpawnChunk.ensureMinimumZombies()
         return 
     end
 
-    local username = SpawnChunk.getUsername()
+local username = SpawnChunk.getUsername()
+    
+    -- CHALLENGE TYPE CHECK: Only run spawner for Purge Challenge (or if sandbox option enabled)
+    local enableSpawnerForAllChallenges = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.EnableSpawnerForAllChallenges) or false
+    
+    if data.challengeType ~= "Purge" and not enableSpawnerForAllChallenges then
+        -- Not Purge Challenge and spawner not enabled globally - skip spawning/sound system
+        return
+    end
     
     -- CHUNK MODE: Check if current chunk is completed
     if data.chunkMode and data.currentChunk then

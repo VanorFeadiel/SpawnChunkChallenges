@@ -863,6 +863,10 @@ function SpawnChunkHUD:render()
         self:drawText("Position: (" .. math.floor(pl:getX()) .. ", " .. math.floor(pl:getY()) .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
         
+		-- Show HUD window position for adjustment
+        self:drawText("HUD Position: (" .. self:getX() .. ", " .. self:getY() .. ")", 10, yPos, 0.7, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+		
         self:drawText("Spawn: (" .. data.spawnX .. ", " .. data.spawnY .. ")", 10, yPos, 1, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
         

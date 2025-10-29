@@ -15,4 +15,6 @@ Sandbox_EN = {
     Sandbox_SpawnChunkChallenge_ChallengeType = "Challenge Type (1=Purge, 2=Time, 3=Zero to Hero)",
     Sandbox_SpawnChunkChallenge_TimeChallengeDuration = "Time Challenge Duration (in-game hours, 1-720, default: 12)",
     Sandbox_SpawnChunkChallenge_TimeInAnyChunk = "Time Challenge: Count time in any unlocked chunk",
+	Sandbox_SpawnChunkChallenge_EnableSpawnerForAllChallenges = "Enable Zombie Spawner for All Challenges",
+	Sandbox_SpawnChunkChallenge_EnableSpawnerForAllChallenges_tooltip = "If enabled, the zombie spawning and sound attraction system will run for ALL challenge types (not just Purge). Default: disabled (Purge only)",
 }

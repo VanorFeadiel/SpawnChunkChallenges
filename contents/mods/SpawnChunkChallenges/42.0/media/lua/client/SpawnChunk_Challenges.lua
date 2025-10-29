@@ -29,7 +29,7 @@ function SpawnChunk.isChunkCompleted()
             return data.killCount >= data.killTarget
         end
         
-elseif challengeType == "Time" then
+    elseif challengeType == "Time" then
         -- Time Challenge: Spend time in chunk (in-game hours)
         if data.chunkMode then
             -- CHUNK MODE: Check current chunk's time
@@ -57,12 +57,13 @@ elseif challengeType == "Time" then
             end
         end
         
-        -- If no tracked skills yet, get all player perks
+        -- If no tracked skills yet, get all player perks using XP system (Build 42 compatible)
         if #trackedSkills == 0 then
-            local perkList = pl:getPerks()
-            if perkList then
-                for i = 0, perkList:size() - 1 do
-                    local perk = perkList:get(i)
+            local xpSystem = pl:getXp()
+            if xpSystem then
+                -- Iterate through all perks using Perks enum
+                for i = 0, Perks.getMaxIndex() - 1 do
+                    local perk = PerkFactory.getPerk(Perks.fromIndex(i))
                     if perk then
                         local perkType = perk:getType()
                         local skillName = perkType:toString()
@@ -117,7 +118,7 @@ function SpawnChunk.getChallengeProgressText()
             return "Kills: " .. data.killCount .. " / " .. data.killTarget
         end
         
-elseif challengeType == "Time" then
+    elseif challengeType == "Time" then
         if data.chunkMode then
             -- CHUNK MODE: Show current chunk's time
             local currentChunkData = data.chunks[data.currentChunk]
@@ -130,21 +131,22 @@ elseif challengeType == "Time" then
         else
             -- CLASSIC MODE: Show global time
             return string.format("Time: %.1f / %d hours", data.timeHours, data.timeTarget)
-        end        return string.format("Time: %.1f / %d hours", data.timeHours, data.timeTarget)
+        end
         
     elseif challengeType == "ZeroToHero" then
         local skillProgress = ""
         local pl = getPlayer()
         
         if pl then
-            -- AUTO-DETECT: Get all perks from the player (includes modded skills)
-            local perkList = pl:getPerks()
+            -- AUTO-DETECT: Get all perks using XP system (Build 42 compatible)
+            local xpSystem = pl:getXp()
             local skillTexts = {}
             local trackedSkills = {}
             
-            if perkList then
-                for i = 0, perkList:size() - 1 do
-                    local perk = perkList:get(i)
+            if xpSystem then
+                -- Iterate through all perks using Perks enum
+                for i = 0, Perks.getMaxIndex() - 1 do
+                    local perk = PerkFactory.getPerk(Perks.fromIndex(i))
                     if perk then
                         local perkType = perk:getType()
                         local skillName = perkType:toString()
@@ -206,12 +208,15 @@ function SpawnChunk.updateTimeProgress()
             local timeInAnyChunk = data.timeInAnyChunk or false
             
             if timeInAnyChunk then
-                -- Count time in ANY unlocked chunk
-                shouldCountTime = true
-                targetChunkKey = playerChunkKey
-            else
-                -- Only count time in INCOMPLETE chunks
+                -- Count time in ANY unlocked chunk (but not completed ones)
                 if not playerChunkData.completed then
+                    shouldCountTime = true
+                    targetChunkKey = playerChunkKey
+                end
+            else
+                -- CRITICAL: Only count time in CURRENT CHALLENGE CHUNK (not completed)
+                -- The "current chunk" is the one the player is actively working on
+                if playerChunkKey == data.currentChunk and not playerChunkData.completed then
                     shouldCountTime = true
                     targetChunkKey = playerChunkKey
                 end
@@ -267,12 +272,13 @@ function SpawnChunk.updateSkillProgress()
     -- Initialize skill tracking
     data.lastSkillLevels = data.lastSkillLevels or {}
     
-    -- AUTO-DETECT: Get all perks from player (includes modded skills)
-    local perkList = pl:getPerks()
-    if not perkList then return end
+    -- AUTO-DETECT: Get all perks using XP system (Build 42 compatible)
+    local xpSystem = pl:getXp()
+    if not xpSystem then return end
     
-    for i = 0, perkList:size() - 1 do
-        local perk = perkList:get(i)
+    -- Iterate through all perks using Perks enum
+    for i = 0, Perks.getMaxIndex() - 1 do
+        local perk = PerkFactory.getPerk(Perks.fromIndex(i))
         if perk then
             local perkType = perk:getType()
             local skillName = perkType:toString()
@@ -280,37 +286,36 @@ function SpawnChunk.updateSkillProgress()
             local lastLevel = data.lastSkillLevels[skillName] or 0
             
             -- Check if skill leveled up (including 0 to 1)
--- Check if skill leveled up (including 0 to 1)
-if currentLevel > lastLevel then
-    -- Add to pending unlocks queue
-    data.pendingSkillUnlocks = data.pendingSkillUnlocks or {}
-    
-    -- Check if skill has already reached 10 (don't bank again)
-    local alreadyCompleted = false
-    for _, completed in ipairs(data.completedSkills or {}) do
-        if completed == skillName then
-            alreadyCompleted = true
-            break
-        end
-    end
-    
-    -- Calculate how many levels were gained
-    local levelsGained = currentLevel - lastLevel
-    local username = SpawnChunk.getUsername()
-    
-    -- If not at level 10 yet, bank one unlock PER level gained
-    if not alreadyCompleted and currentLevel < 10 then
-        -- Add one unlock for EACH level gained
-        for i = 1, levelsGained do
-            local levelReached = lastLevel + i
-            table.insert(data.pendingSkillUnlocks, {skill = skillName, level = levelReached})
-        end
-        
-        print("[" .. username .. "] Skill leveled up: " .. skillName .. " +" .. levelsGained .. " levels (now level " .. currentLevel .. ") - Banked " .. levelsGained .. " unlock(s) - Total: " .. #data.pendingSkillUnlocks)                    print("[" .. username .. "] Skill leveled up: " .. skillName .. " level " .. currentLevel .. " (banked for unlock - " .. #data.pendingSkillUnlocks .. " unlocks available)")
+            if currentLevel > lastLevel then
+                -- Add to pending unlocks queue
+                data.pendingSkillUnlocks = data.pendingSkillUnlocks or {}
+                
+                -- Check if skill has already reached 10 (don't bank again)
+                local alreadyCompleted = false
+                for _, completed in ipairs(data.completedSkills or {}) do
+                    if completed == skillName then
+                        alreadyCompleted = true
+                        break
+                    end
+                end
+                
+                -- Calculate how many levels were gained
+                local levelsGained = currentLevel - lastLevel
+                local username = SpawnChunk.getUsername()
+                
+                -- If not at level 10 yet, bank one unlock PER level gained
+                if not alreadyCompleted and currentLevel < 10 then
+                    -- Add one unlock for EACH level gained
+                    for i = 1, levelsGained do
+                        local levelReached = lastLevel + i
+                        table.insert(data.pendingSkillUnlocks, {skill = skillName, level = levelReached})
+                    end
+                    
+                    print("[" .. username .. "] Skill leveled up: " .. skillName .. " +" .. levelsGained .. " levels (now level " .. currentLevel .. ") - Banked " .. levelsGained .. " unlock(s) - Total: " .. #data.pendingSkillUnlocks)
                 elseif currentLevel >= 10 and not alreadyCompleted then
                     -- Skill reached level 10!
+                    data.completedSkills = data.completedSkills or {}
                     table.insert(data.completedSkills, skillName)
-                    local username = SpawnChunk.getUsername()
                     print("[" .. username .. "] SKILL COMPLETED: " .. skillName .. " reached level 10!")
                 end
                 
@@ -345,13 +350,20 @@ Events.OnTick.Add(function()
     if data.isInitialized and data.challengeType == "Time" then
         local pl = getPlayer()
         if pl and SpawnChunk.isChunkCompleted() then
-            local username = SpawnChunk.getUsername()
-            print("[" .. username .. "] Time Challenge completed! Chunk unlocked.")
-            
+            -- CRITICAL: Check if chunk is NOT already completed (prevent multiple calls)
             if data.chunkMode then
-                SpawnChunk.onChunkComplete(data.currentChunk)
+                local currentChunkData = data.chunks[data.currentChunk]
+                if currentChunkData and not currentChunkData.completed then
+                    local username = SpawnChunk.getUsername()
+                    print("[" .. username .. "] Time Challenge completed! Chunk unlocked.")
+                    SpawnChunk.onChunkComplete(data.currentChunk)
+                end
             else
-                SpawnChunk.onVictory()
+                if not data.isComplete then
+                    local username = SpawnChunk.getUsername()
+                    print("[" .. username .. "] Time Challenge completed! Victory!")
+                    SpawnChunk.onVictory()
+                end
             end
         end
     end
@@ -365,7 +377,8 @@ Events.OnTick.Add(function()
     local data = SpawnChunk.getData()
     if data.isInitialized and data.challengeType == "ZeroToHero" then
         local pl = getPlayer()
-        if pl and SpawnChunk.isChunkCompleted() then
+        -- CRITICAL: Check if NOT already complete (prevent multiple calls)
+        if pl and not data.isComplete and SpawnChunk.isChunkCompleted() then
             local username = SpawnChunk.getUsername()
             print("[" .. username .. "] ALL SKILLS REACHED LEVEL 10! Victory - boundaries removed!")
             

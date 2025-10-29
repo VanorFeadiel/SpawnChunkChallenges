@@ -55,19 +55,20 @@ function SpawnChunk.initialize()
         data.timeTarget = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.TimeChallengeDuration) or 12
         data.timeInAnyChunk = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.TimeInAnyChunk) or false
         data.timeHours = 0
-    elseif challengeType == "ZeroToHero" then
+elseif challengeType == "ZeroToHero" then
         -- Initialize skill tracking for Zero to Hero
         data.pendingSkillUnlocks = {}
         data.completedSkills = {}
         data.lastSkillLevels = {}
         
         -- AUTO-DETECT: Initialize baseline for ALL skills (including level 0)
-        local pl = getPlayer()
         if pl then
-            local perkList = pl:getPerks()
-            if perkList then
-                for i = 0, perkList:size() - 1 do
-                    local perk = perkList:get(i)
+            -- Use XP system instead of perks (more reliable in Build 42)
+            local xpSystem = pl:getXp()
+            if xpSystem then
+                -- Iterate through all perks using Perks enum
+                for i = 0, Perks.getMaxIndex() - 1 do
+                    local perk = PerkFactory.getPerk(Perks.fromIndex(i))
                     if perk then
                         local perkType = perk:getType()
                         local skillName = perkType:toString()
@@ -80,44 +81,27 @@ function SpawnChunk.initialize()
         end
     end
     
--- Initialize based on mode
-if chunkModeEnabled then
-    -- CHUNK MODE: Initialize first chunk (chunk_0_0)
-    data.currentChunk = "chunk_0_0"
-    data.chunks = {}
+    -- Calculate boundary size and area
+    local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
+    local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1) -- Full area including edges
+    local baselineArea = 101 * 101 -- 50x50 boundary = 101x101 area
+    local areaMultiplier = boundaryArea / baselineArea
     
-    local firstChunk = SpawnChunk.initChunk("chunk_0_0", true, false)
-    
-    -- Set challenge-specific targets
+    -- Calculate kill target for Purge challenge (only if needed)
+    local target = 10  -- Default/fallback value
     if challengeType == "Purge" then
         local cell = getCell()
         local zombieList = cell and cell:getZombieList()
         local totalZombies = zombieList and zombieList:size() or 100
         local baseTarget = math.floor(totalZombies / 9)
         
-        -- ... rest of kill target calculation ...
-        firstChunk.killTarget = target
-        firstChunk.killCount = 0
-    elseif challengeType == "Time" then
-        firstChunk.timeHours = 0
-        firstChunk.timeTarget = data.timeTarget
-    elseif challengeType == "ZeroToHero" then
-        firstChunk.killTarget = 0
-        firstChunk.killCount = 0
+        -- Apply area scaling and kill multiplier from sandbox options
+        local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
+        target = math.floor(baseTarget * areaMultiplier * killMultiplier)
+        
+        -- Ensure minimum target of 5
+        if target < 5 then target = 5 end
     end
-    
-    -- Scale target based on boundary area (50x50 = 2500 tiles is baseline)
-    local boundarySize = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.BoundarySize) or 50
-    local boundaryArea = (boundarySize * 2 + 1) * (boundarySize * 2 + 1) -- Full area including edges
-    local baselineArea = 101 * 101 -- 50x50 boundary = 101x101 area
-    local areaMultiplier = boundaryArea / baselineArea
-    
-    -- Apply area scaling and kill multiplier from sandbox options
-    local killMultiplier = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0
-    local target = math.floor(baseTarget * areaMultiplier * killMultiplier)
-    
-    -- Ensure minimum target of 5
-    if target < 5 then target = 5 end
     
     -- Store spawn data
     data.spawnX = x
@@ -134,8 +118,22 @@ if chunkModeEnabled then
         data.chunks = {}
         
         local firstChunk = SpawnChunk.initChunk("chunk_0_0", true, false)
-        firstChunk.killTarget = target
-        firstChunk.killCount = 0
+        
+        -- Set challenge-specific targets for first chunk
+        if challengeType == "Purge" then
+            firstChunk.killTarget = target
+            firstChunk.killCount = 0
+        elseif challengeType == "Time" then
+            firstChunk.timeHours = 0
+            firstChunk.timeTarget = data.timeTarget
+            firstChunk.killTarget = 0
+            firstChunk.killCount = 0
+        elseif challengeType == "ZeroToHero" then
+            firstChunk.killTarget = 0
+            firstChunk.killCount = 0
+            firstChunk.timeHours = 0
+            firstChunk.timeTarget = 0
+        end
         
         -- Legacy fields kept at 0 for compatibility
         data.killCount = 0
@@ -149,7 +147,14 @@ if chunkModeEnabled then
         print("Boundary Size: " .. data.boundarySize .. " tiles per chunk")
         print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
         print("First Chunk: chunk_0_0")
-        print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
+        
+        if challengeType == "Purge" then
+            print("Kill Target: " .. target .. " zombies (multiplier: " .. ((SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0) .. ")")
+        elseif challengeType == "Time" then
+            print("Time Target: " .. data.timeTarget .. " hours")
+        elseif challengeType == "ZeroToHero" then
+            print("Zero to Hero: Level all skills to unlock chunks")
+        end
         print("===================================================")
         
         -- Show on-screen message based on challenge type
@@ -175,7 +180,14 @@ if chunkModeEnabled then
         print("Spawn: " .. x .. ", " .. y .. ", " .. z)
         print("Boundary: " .. data.boundarySize .. " tiles")
         print("Boundary Area: " .. boundaryArea .. " tiles (multiplier: " .. string.format("%.2f", areaMultiplier) .. ")")
-        print("Kill Target: " .. target .. " zombies (base: " .. baseTarget .. ", multiplier: " .. killMultiplier .. ")")
+        
+        if challengeType == "Purge" then
+            print("Kill Target: " .. target .. " zombies (multiplier: " .. ((SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.KillMultiplier) or 1.0) .. ")")
+        elseif challengeType == "Time" then
+            print("Time Target: " .. data.timeTarget .. " hours")
+        elseif challengeType == "ZeroToHero" then
+            print("Zero to Hero: Level all skills to 10 to escape")
+        end
         print("====================================================")
         
         -- Show on-screen message based on challenge type

@@ -60,8 +60,8 @@ function SpawnChunk.onZombieDead(zombie)
         
         print("[" .. username .. "] Chunk " .. playerChunkKey .. " - Kill " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget)
         
-        -- Show progress notification every 5 kills
-        if playerChunkData.killCount % 5 == 0 then
+		-- Show progress notification every 5 kills (PURGE ONLY)
+        if data.challengeType == "Purge" and playerChunkData.killCount % 5 == 0 then
             pl:setHaloNote("Chunk " .. playerChunkKey .. " - Kills: " .. playerChunkData.killCount .. " / " .. playerChunkData.killTarget, 100, 255, 100, 150)
         end
         
@@ -78,8 +78,8 @@ function SpawnChunk.onZombieDead(zombie)
         
         print("[" .. username .. "] Kill " .. data.killCount .. " / " .. data.killTarget)
         
-        -- Show progress notification every 5 kills
-        if data.killCount % 5 == 0 then
+		-- Show progress notification every 5 kills (PURGE ONLY)
+        if data.challengeType == "Purge" and data.killCount % 5 == 0 then
             pl:setHaloNote("Kills: " .. data.killCount .. " / " .. data.killTarget, 100, 255, 100, 150)
         end
         
@@ -196,8 +196,14 @@ function SpawnChunk.onChunkComplete(chunkKey)
     end
     
     print("[" .. username .. "] Unlocked " .. newChunksUnlocked .. " new chunk(s)")
+    -- Force immediate marker refresh to show available chunks (especially for Time/ZtH)
+    if data.challengeType ~= "Purge" then
+        -- Non-Purge challenges: Immediately mark for recreation (no delay needed without spawner)
+        data.markersCreated = false
+        data.mapSymbolCreated = false
+    end
     
-    -- Reset sound system when switching to new chunks
+-- Reset sound system when switching to new chunks
     data.currentSoundRadius = 0
     data.lastClosestZombieDistance = nil
     data.consecutiveNonApproachingWaves = 0
@@ -214,15 +220,24 @@ function SpawnChunk.onChunkComplete(chunkKey)
         SpawnChunk.removeMapSymbol()
     end
     
-    -- Recreate markers with a short delay to ensure cleanup is complete
+    -- Recreate markers with minimal delay (lag issue fixed, so can be faster now)
     local timer = 0
+    local groundMarkersCreated = false
+    
     local function recreateVisuals()
         timer = timer + 1
-        if timer >= 10 then  -- ~0.3 second delay
+        
+        -- Create ground markers first (after 5 ticks = 0.15 seconds)
+        if timer >= 5 and not groundMarkersCreated then
             if SpawnChunk.createGroundMarkers then
                 SpawnChunk.createGroundMarkers()
                 print("[" .. username .. "] Ground markers recreated after chunk completion")
+                groundMarkersCreated = true
             end
+        end
+        
+        -- Create map symbols after ground markers (after 15 ticks = 0.5 seconds total)
+        if timer >= 15 then
             if SpawnChunk.addMapSymbol then
                 SpawnChunk.addMapSymbol()
                 data.mapSymbolCreated = true
@@ -233,7 +248,6 @@ function SpawnChunk.onChunkComplete(chunkKey)
     end
     Events.OnTick.Add(recreateVisuals)
 end
-
 -----------------------  VICTORY CONDITION  ---------------------------
 
 function SpawnChunk.onVictory()
