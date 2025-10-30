@@ -1,12 +1,12 @@
 -- SpawnChunk_Data.lua
 -- Persistent data management (saves across sessions)
 -- CHARACTER-SPECIFIC DATA - Each character gets their own challenge state
---modversion=0.3.2.028
+--modversion=0.3.2.030
 
 SpawnChunk = SpawnChunk or {}
 
 -- MOD VERSION (update this when mod.info changes)
-SpawnChunk.MOD_VERSION = "0.3.2.028"
+SpawnChunk.MOD_VERSION = "0.3.2.030"
 
 -----------------------  CHARACTER-SPECIFIC DATA ACCESS  ---------------------------
 
@@ -216,6 +216,17 @@ function SpawnChunk.makeChunkAvailable(chunkKey)
     chunkData.available = true
     local username = SpawnChunk.getUsername()
     print("[" .. username .. "] Chunk available: " .. chunkKey)
+    
+    -- OPTIMIZED: Create markers for this new blue chunk immediately
+    if SpawnChunk.updateChunkMarkers then
+        SpawnChunk.updateChunkMarkers(chunkKey, false)
+        print("[" .. username .. "] Created blue markers for available chunk: " .. chunkKey)
+    end
+    
+    -- Mark map symbols as needing update (will refresh when map opened)
+    local data = SpawnChunk.getData()
+    data.mapSymbolNeedsUpdate = true
+    
     return chunkData
 end
 
@@ -229,9 +240,18 @@ function SpawnChunk.clearAllAvailableChunks()
             if chunkData.available and not chunkData.unlocked then
                 chunkData.available = false
                 print("[" .. username .. "] Removed available flag from: " .. chunkKey)
+                
+                -- OPTIMIZED: Remove blue markers for this chunk immediately
+                if SpawnChunk.removeChunkMarkers then
+                    SpawnChunk.removeChunkMarkers(chunkKey)
+                    print("[" .. username .. "] Removed blue markers for: " .. chunkKey)
+                end
             end
         end
     end
+    
+    -- Mark map symbols as needing update (will refresh when map opened)
+    data.mapSymbolNeedsUpdate = true
 end
 
 -- Unlock a chunk (and initialize if needed)
@@ -241,6 +261,17 @@ function SpawnChunk.unlockChunk(chunkKey)
     chunkData.available = false  -- No longer just available, now unlocked
     local username = SpawnChunk.getUsername()
     print("[" .. username .. "] Unlocked chunk: " .. chunkKey)
+    
+    -- OPTIMIZED: Update markers for this chunk to yellow immediately
+    if SpawnChunk.updateChunkMarkers then
+        SpawnChunk.updateChunkMarkers(chunkKey, true)
+        print("[" .. username .. "] Updated markers to yellow for unlocked chunk: " .. chunkKey)
+    end
+    
+    -- Mark map symbols as needing update (will refresh when map opened)
+    local data = SpawnChunk.getData()
+    data.mapSymbolNeedsUpdate = true
+    
     return chunkData
 end
 
@@ -251,6 +282,9 @@ function SpawnChunk.completeChunk(chunkKey)
         data.chunks[chunkKey].completed = true
         local username = SpawnChunk.getUsername()
         print("[" .. username .. "] Completed chunk: " .. chunkKey)
+        
+        -- Mark map symbols as needing update (will refresh when map opened)
+        data.mapSymbolNeedsUpdate = true
     end
 end
 

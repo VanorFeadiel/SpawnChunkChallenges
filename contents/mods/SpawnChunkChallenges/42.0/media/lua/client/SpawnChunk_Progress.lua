@@ -1,7 +1,7 @@
 -- SpawnChunk_Progress.lua
 -- Track challenge progress and completion
 -- CHARACTER-SPECIFIC via getData()
---modversion=0.3.2.028
+--modversion=0.3.2.030
 
 SpawnChunk = SpawnChunk or {}
 
@@ -192,9 +192,17 @@ function SpawnChunk.onChunkComplete(chunkKey)
     inv:AddItem("Base.WaterBottleFull")
     --inv:AddItem("Base.Bandage")  --commented out for now keep in code as extra example.
     
+    -- === OPTIMIZED: Use selective marker updates instead of recreating everything ===
+    -- Update the completed chunk's markers to green
+    if SpawnChunk.updateChunkMarkers then
+        SpawnChunk.updateChunkMarkers(chunkKey, true)
+        print("[" .. username .. "] Updated markers for completed chunk " .. chunkKey)
+    end
+    
     -- === NEW LOGIC: Scan ALL completed chunks and make their unlocked neighbors available ===
     -- This prevents the player from getting stuck when surrounded by completed chunks
     local newChunksUnlocked = 0
+    local newChunksToUpdate = {}  -- Track new chunks for marker updates
     
     if data.chunks then
         -- Iterate through ALL chunks
@@ -270,6 +278,7 @@ function SpawnChunk.onChunkComplete(chunkKey)
                         end
                         
                         newChunksUnlocked = newChunksUnlocked + 1
+                        table.insert(newChunksToUpdate, adjacentKey)
                     end
                 end
             end
@@ -278,11 +287,12 @@ function SpawnChunk.onChunkComplete(chunkKey)
     
     print("[" .. username .. "] Made " .. newChunksUnlocked .. " chunk(s) available (beside ALL completed chunks)")
     
-    -- Force immediate marker refresh to show available chunks (especially for Time/ZtH)
-    if data.challengeType ~= "Purge" then
-        -- Non-Purge challenges: Immediately mark for recreation (no delay needed without spawner)
-        data.markersCreated = false
-        data.mapSymbolCreated = false
+    -- === OPTIMIZED: Only update markers for new chunks (not everything) ===
+    if SpawnChunk.updateChunkMarkers then
+        for _, newChunkKey in ipairs(newChunksToUpdate) do
+            SpawnChunk.updateChunkMarkers(newChunkKey, false)
+            print("[" .. username .. "] Created markers for new chunk " .. newChunkKey)
+        end
     end
     
     -- Reset sound system when switching to new chunks
@@ -290,45 +300,10 @@ function SpawnChunk.onChunkComplete(chunkKey)
     data.lastClosestZombieDistance = nil
     data.consecutiveNonApproachingWaves = 0
     
-    -- Recreate visual markers immediately to show completed/unlocked chunks
-    data.markersCreated = false
-    data.mapSymbolCreated = false
-    
-    -- Remove old markers first
-    if SpawnChunk.removeGroundMarkers then
-        SpawnChunk.removeGroundMarkers()
-    end
-    if SpawnChunk.removeMapSymbol then
-        SpawnChunk.removeMapSymbol()
-    end
-    
-    -- Recreate markers with minimal delay (lag issue fixed, so can be faster now)
-    local timer = 0
-    local groundMarkersCreated = false
-    
-    local function recreateVisuals()
-        timer = timer + 1
-        
-        -- Create ground markers first (after 5 ticks = 0.15 seconds)
-        if timer >= 5 and not groundMarkersCreated then
-            if SpawnChunk.createGroundMarkers then
-                SpawnChunk.createGroundMarkers()
-                print("[" .. username .. "] Ground markers recreated after chunk completion")
-                groundMarkersCreated = true
-            end
-        end
-        
-        -- Create map symbols after ground markers (after 15 ticks = 0.5 seconds total)
-        if timer >= 15 then
-            if SpawnChunk.addMapSymbol then
-                SpawnChunk.addMapSymbol()
-                data.mapSymbolCreated = true
-                print("[" .. username .. "] Map symbols recreated after chunk completion")
-            end
-            Events.OnTick.Remove(recreateVisuals)
-        end
-    end
-    Events.OnTick.Add(recreateVisuals)
+    -- OPTIMIZATION: Don't auto-recreate map symbols (causes lag)
+    -- Map symbols will update when player opens map (manual refresh)
+    -- This eliminates lag during chunk transitions
+    print("[" .. username .. "] Chunk complete - map symbols will update when you open the map")
 end
 
 -----------------------  VICTORY CONDITION  ---------------------------

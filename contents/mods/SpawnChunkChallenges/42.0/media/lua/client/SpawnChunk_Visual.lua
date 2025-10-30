@@ -1,11 +1,11 @@
 -- SpawnChunk_Visual.lua (CONTINUOUS BOUNDARY LINES - CHARACTER SPECIFIC)
 -- Ground markers, map boundary lines, and HUD
 -- Each character maintains their own visual elements
---modversion=0.3.2.026
+--modversion=0.3.2.030
 
 SpawnChunk = SpawnChunk or {}
 
--- Character-specific marker storage
+-- Character-specific marker storage (now organized by chunk)
 SpawnChunk.characterMarkers = SpawnChunk.characterMarkers or {}
 SpawnChunk.characterMapSymbols = SpawnChunk.characterMapSymbols or {}
 
@@ -27,7 +27,38 @@ function SpawnChunk.getMapSymbolStorage()
     return SpawnChunk.characterMapSymbols[username]
 end
 
------------------------  GROUND BOUNDARY MARKERS  ---------------------------
+-----------------------  VIEW DISTANCE CULLING  ---------------------------
+
+-- Get player's view distance based on vehicle status
+function SpawnChunk.getViewDistance()
+    local pl = getPlayer()
+    if not pl then return 60 end
+    
+    -- Check if player is in a vehicle
+    local vehicle = pl:getVehicle()
+    if vehicle then
+        return 100  -- Increased range when in vehicle
+    end
+    
+    return 60  -- Normal range on foot
+end
+
+-- Check if a position is within view distance of player
+function SpawnChunk.isInViewDistance(x, y)
+    local pl = getPlayer()
+    if not pl then return false end
+    
+    local playerX = pl:getX()
+    local playerY = pl:getY()
+    local viewDist = SpawnChunk.getViewDistance()
+    
+    local dx = math.abs(x - playerX)
+    local dy = math.abs(y - playerY)
+    
+    return dx <= viewDist and dy <= viewDist
+end
+
+-----------------------  GROUND BOUNDARY MARKERS (OPTIMIZED)  ---------------------------
 
 -- Get boundary edge squares for a specific chunk
 function SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
@@ -102,6 +133,154 @@ function SpawnChunk.getBoundaryEdgeSquares()
     return allEdgeSquares
 end
 
+-- NEW: Create or update markers for a SPECIFIC chunk only
+function SpawnChunk.updateChunkMarkers(chunkKey, forceRecreate)
+    local data = SpawnChunk.getData()
+    if not data.isInitialized then return end
+    
+    -- Check if ground markers are enabled
+    local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
+    if not showMarkers then return end
+    
+    local username = SpawnChunk.getUsername()
+    local markerStorage = SpawnChunk.getMarkerStorage()
+    
+    -- Initialize chunk-specific storage if needed
+    markerStorage[chunkKey] = markerStorage[chunkKey] or {}
+    
+    -- Check if chunk is in view (skip out-of-view chunks unless forcing)
+    local centerX, centerY = SpawnChunk.getChunkCenter(chunkKey, data)
+    local inView = not centerX or SpawnChunk.isInViewDistance(centerX, centerY)
+    
+    local hadMarkers = #markerStorage[chunkKey] > 0
+    
+    -- If out of view and has markers, remove them
+    if not inView and hadMarkers then
+        for _, marker in ipairs(markerStorage[chunkKey]) do
+            if marker and marker.remove then
+                marker:remove()
+            end
+        end
+        markerStorage[chunkKey] = {}
+        return  -- Done - chunk out of view
+    end
+    
+    -- If out of view and no markers, skip entirely
+    if not inView then
+        return
+    end
+    
+    -- In view - remove old markers to prevent stale colors/state
+    if hadMarkers then
+        for _, marker in ipairs(markerStorage[chunkKey]) do
+            if marker and marker.remove then
+                marker:remove()
+            end
+        end
+        markerStorage[chunkKey] = {}
+    end
+    
+    -- Get chunk data to determine color
+    local chunkData = SpawnChunk.getChunkData(chunkKey)
+    if not chunkData then return end
+    
+    -- Determine color based on chunk status
+    local r, g, b = 1, 1, 0  -- Yellow default
+    
+    if chunkData.completed then
+        r, g, b = 0, 1, 0  -- Green for completed chunks
+    elseif chunkData.available and not chunkData.unlocked then
+        r, g, b = 0.5, 0.5, 1  -- Blue for available (not yet unlocked)
+    elseif chunkKey == data.currentChunk then
+        r, g, b = 1, 1, 0  -- Yellow for current chunk
+    else
+        r, g, b = 1, 0.5, 0  -- Orange for other unlocked chunks
+    end
+    
+    -- Get edge squares for this chunk only
+    local edgeSquares = SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
+    local wm = getWorldMarkers()
+    if not wm then return end
+    
+    -- Create markers only for edges within view distance
+    local edgeSquares = SpawnChunk.getChunkBoundaryEdges(chunkKey, data)
+    local wm = getWorldMarkers()
+    if not wm then return end
+    
+    local markerCount = 0
+    for _, eSq in ipairs(edgeSquares) do
+        -- VIEW DISTANCE CULLING: Only create markers near player
+        if SpawnChunk.isInViewDistance(eSq.x, eSq.y) then
+            local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
+            if sq then
+                local marker = wm:addGridSquareMarker(nil, "X", sq, r, g, b, true, 0.3)
+                if marker then
+                    table.insert(markerStorage[chunkKey], marker)
+                    markerCount = markerCount + 1
+                end
+            end
+        end
+    end
+    
+    if hadMarkers and markerCount > 0 then
+        print("[" .. username .. "] Updated " .. markerCount .. " markers for chunk " .. chunkKey .. " (state changed)")
+    elseif markerCount > 0 then
+        print("[" .. username .. "] Created " .. markerCount .. " markers for chunk " .. chunkKey .. " (view-culled)")
+    end
+end
+
+-- NEW: Remove markers for a specific chunk only
+function SpawnChunk.removeChunkMarkers(chunkKey)
+    local username = SpawnChunk.getUsername()
+    local markerStorage = SpawnChunk.getMarkerStorage()
+    
+    if markerStorage[chunkKey] then
+        local removedCount = 0
+        for _, marker in ipairs(markerStorage[chunkKey]) do
+            if marker and marker.remove then
+                marker:remove()
+                removedCount = removedCount + 1
+            end
+        end
+        markerStorage[chunkKey] = {}
+        
+        if removedCount > 0 then
+            print("[" .. username .. "] Removed " .. removedCount .. " markers for chunk " .. chunkKey)
+        end
+    end
+end
+
+-- NEW: Update markers based on view distance (call periodically)
+function SpawnChunk.updateVisibleMarkers()
+    local data = SpawnChunk.getData()
+    if not data.isInitialized or not data.chunkMode then return end
+    
+    -- Check if ground markers are enabled
+    local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
+    if not showMarkers then return end
+    
+    -- For each chunk, update markers based on view distance
+    if data.chunks then
+        for chunkKey, chunkData in pairs(data.chunks) do
+            if chunkData.unlocked or chunkData.available then
+                -- Check if chunk center is in view distance
+                local centerX, centerY = SpawnChunk.getChunkCenter(chunkKey, data)
+                if centerX and SpawnChunk.isInViewDistance(centerX, centerY) then
+                    -- Chunk is in view - ensure markers exist
+                    local markerStorage = SpawnChunk.getMarkerStorage()
+                    if not markerStorage[chunkKey] or #markerStorage[chunkKey] == 0 then
+                        SpawnChunk.updateChunkMarkers(chunkKey, false)
+                    end
+                else
+                    -- Chunk is out of view - remove markers to save performance
+                    SpawnChunk.removeChunkMarkers(chunkKey)
+                end
+            end
+        end
+    end
+end
+
+-- MODIFIED: Full recreation now uses selective updates
 function SpawnChunk.createGroundMarkers()
     local data = SpawnChunk.getData()
     if not data.isInitialized then return end
@@ -113,68 +292,103 @@ function SpawnChunk.createGroundMarkers()
     local showMarkers = (SandboxVars.SpawnChunkChallenge and SandboxVars.SpawnChunkChallenge.ShowGroundMarkers) ~= false
     if not showMarkers then return end
     
-    -- Remove old markers for this character first
-    SpawnChunk.removeGroundMarkers()
-    
     local username = SpawnChunk.getUsername()
-    print("[" .. username .. "] Creating boundary markers...")
+    print("[" .. username .. "] Updating boundary markers (selective + view-culled)...")
     
-    local edgeSquares = SpawnChunk.getBoundaryEdgeSquares()
-    local wm = getWorldMarkers()
-    if not wm then 
-        print("[" .. username .. "] ERROR: WorldMarkers not available")
-        return 
-    end
-    
-    local markerStorage = SpawnChunk.getMarkerStorage()
-    
-    -- In chunk mode, we'll color-code chunks
-    -- For now, just use yellow for all boundaries
-    -- (Future enhancement: different colors for completed vs active chunks)
-    
-    -- Add markers on EVERY boundary tile (no skipping)
-    for i, eSq in ipairs(edgeSquares) do
-        local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
-        if sq then
-            -- Determine color based on mode and chunk status
-            local r, g, b = 1, 1, 0  -- Yellow default
-            
-            -- In chunk mode, check if this position is in current or completed chunk
-            if data.chunkMode then
-                -- Find which chunk this edge belongs to
-                local chunkKey = SpawnChunk.getChunkKeyFromPosition(eSq.x, eSq.y, data)
-                local chunkData = SpawnChunk.getChunkData(chunkKey)
-                
-                if chunkData then
-                    if chunkData.completed then
-                        r, g, b = 0, 1, 0  -- Green for completed chunks
-                    elseif chunkData.available and not chunkData.unlocked then
-                        r, g, b = 0.5, 0.5, 1  -- Blue for available (not yet unlocked)
-                    elseif chunkKey == data.currentChunk then
-                        r, g, b = 1, 1, 0  -- Yellow for current chunk
-                    else
-                        r, g, b = 1, 0.5, 0  -- Orange for other unlocked chunks
+    if data.chunkMode then
+        -- CHUNK MODE: Only update chunks near player (within view distance)
+        -- This prevents lag when called during chunk transitions
+        local pl = getPlayer()
+        if not pl then return end
+        
+        local playerX, playerY = pl:getX(), pl:getY()
+        local viewDist = SpawnChunk.getViewDistance() + data.boundarySize  -- Add chunk size buffer
+        
+        local updatedCount = 0
+        
+        -- Update unlocked chunks (only if near player)
+        local unlockedChunks = SpawnChunk.getUnlockedChunks()
+        for _, chunkKey in ipairs(unlockedChunks) do
+            local centerX, centerY = SpawnChunk.getChunkCenter(chunkKey, data)
+            if centerX then
+                local dx = math.abs(centerX - playerX)
+                local dy = math.abs(centerY - playerY)
+                if dx <= viewDist and dy <= viewDist then
+                    SpawnChunk.updateChunkMarkers(chunkKey, false)
+                    updatedCount = updatedCount + 1
+                end
+            end
+        end
+        
+        -- Update available chunks (only if near player)
+        if data.chunks then
+            for chunkKey, chunkData in pairs(data.chunks) do
+                if chunkData.available and not chunkData.unlocked then
+                    local centerX, centerY = SpawnChunk.getChunkCenter(chunkKey, data)
+                    if centerX then
+                        local dx = math.abs(centerX - playerX)
+                        local dy = math.abs(centerY - playerY)
+                        if dx <= viewDist and dy <= viewDist then
+                            SpawnChunk.updateChunkMarkers(chunkKey, false)
+                            updatedCount = updatedCount + 1
+                        end
                     end
                 end
             end
-            
-            local marker = wm:addGridSquareMarker(nil, "X", sq, r, g, b, true, 0.3)
-            if marker then
-                table.insert(markerStorage, marker)
+        end
+        
+        print("[" .. username .. "] Updated " .. updatedCount .. " chunks near player (others out of range)")
+    else
+        -- CLASSIC MODE: Old behavior (single boundary)
+        SpawnChunk.removeGroundMarkers()
+        
+        local edgeSquares = SpawnChunk.getBoundaryEdgeSquares()
+        local wm = getWorldMarkers()
+        if not wm then 
+            print("[" .. username .. "] ERROR: WorldMarkers not available")
+            return 
+        end
+        
+        local markerStorage = SpawnChunk.getMarkerStorage()
+        markerStorage["classic"] = markerStorage["classic"] or {}
+        
+        for _, eSq in ipairs(edgeSquares) do
+            -- VIEW DISTANCE CULLING in classic mode too
+            if SpawnChunk.isInViewDistance(eSq.x, eSq.y) then
+                local sq = getCell():getOrCreateGridSquare(eSq.x, eSq.y, data.spawnZ)
+                if sq then
+                    local marker = wm:addGridSquareMarker(nil, "X", sq, 1, 1, 0, true, 0.3)
+                    if marker then
+                        table.insert(markerStorage["classic"], marker)
+                    end
+                end
             end
         end
+        
+        print("[" .. username .. "] Created " .. #markerStorage["classic"] .. " markers (classic mode, view-culled)")
     end
     
-    -- Add spawn point marker (green, larger)
+    -- Add spawn point marker (always visible, not view-culled)
+    local wm = getWorldMarkers()
     local spawnSq = getCell():getOrCreateGridSquare(data.spawnX, data.spawnY, data.spawnZ)
-    if spawnSq then
+    if spawnSq and wm then
+        local markerStorage = SpawnChunk.getMarkerStorage()
+        markerStorage["spawn"] = markerStorage["spawn"] or {}
+        
+        -- Remove old spawn marker
+        for _, marker in ipairs(markerStorage["spawn"]) do
+            if marker and marker.remove then
+                marker:remove()
+            end
+        end
+        markerStorage["spawn"] = {}
+        
         local spawnMarker = wm:addGridSquareMarker(nil, "SPAWN", spawnSq, 0, 1, 0, true, 1)
         if spawnMarker then
-            table.insert(markerStorage, spawnMarker)
+            table.insert(markerStorage["spawn"], spawnMarker)
         end
     end
     
-    print("[" .. username .. "] Created " .. #markerStorage .. " boundary markers")
     data.markersCreated = true
 end
 
@@ -183,15 +397,35 @@ function SpawnChunk.removeGroundMarkers()
     local markerStorage = SpawnChunk.getMarkerStorage()
     
     if markerStorage then
-        for _, marker in ipairs(markerStorage) do
-            if marker and marker.remove then
-                marker:remove()
+        local totalRemoved = 0
+        for chunkKey, markers in pairs(markerStorage) do
+            for _, marker in ipairs(markers) do
+                if marker and marker.remove then
+                    marker:remove()
+                    totalRemoved = totalRemoved + 1
+                end
             end
         end
         -- Clear the storage
         SpawnChunk.characterMarkers[username] = {}
+        
+        if totalRemoved > 0 then
+            print("[" .. username .. "] Removed " .. totalRemoved .. " markers (all chunks)")
+        end
     end
 end
+
+-- Periodic marker visibility update (every 2 seconds)
+local markerUpdateTimer = 0
+local MARKER_UPDATE_INTERVAL = 120  -- Every 2 seconds (120 ticks)
+
+Events.OnTick.Add(function()
+    markerUpdateTimer = markerUpdateTimer + 1
+    if markerUpdateTimer >= MARKER_UPDATE_INTERVAL then
+        markerUpdateTimer = 0
+        SpawnChunk.updateVisibleMarkers()
+    end
+end)
 
 -- Create markers after initialization
 Events.OnGameStart.Add(function()
@@ -501,6 +735,33 @@ Events.OnGameStart.Add(function()
     Events.OnTick.Add(checkInit)
 end)
 
+-- OPTIMIZATION: Auto-refresh map symbols when player opens the map
+-- This prevents lag during chunk transitions while keeping map accurate
+local lastMapOpenState = false
+Events.OnTick.Add(function()
+    -- Check if map is currently open
+    if ISWorldMap_instance and ISWorldMap_instance:isVisible() then
+        if not lastMapOpenState then
+            -- Map just opened - refresh symbols if needed
+            lastMapOpenState = true
+            local data = SpawnChunk.getData()
+            if data.isInitialized and data.chunkMode then
+                -- Check if map needs updating (chunk states changed since last update)
+                if not data.mapSymbolCreated or data.mapSymbolNeedsUpdate then
+                    SpawnChunk.removeMapSymbol()
+                    SpawnChunk.addMapSymbol()
+                    data.mapSymbolCreated = true
+                    data.mapSymbolNeedsUpdate = false
+                    local username = SpawnChunk.getUsername()
+                    print("[" .. username .. "] Map symbols refreshed (opened map)")
+                end
+            end
+        end
+    else
+        lastMapOpenState = false
+    end
+end)
+
 -- Also recreate map symbols after respawn (not just on game start)
 Events.OnCreatePlayer.Add(function(playerIndex, player)
     -- Wait longer after respawn to ensure map is ready
@@ -600,7 +861,24 @@ function SpawnChunkHUD:render()
             currentY = currentY + 25
         end
         
-        -- Show spawn delay status or paused status (currentY already incremented above)
+        -- === ZERO TO HERO TIMER FIX: Show below chunk indicator ===
+        if data.challengeType == "ZeroToHero" then
+            -- Check if settlement timer is active
+            if data.chunkEntryTime then
+                local gameTime = getGameTime()
+                local currentMinutes = gameTime:getWorldAgeHours() * 60
+                local elapsedMinutes = currentMinutes - data.chunkEntryTime
+                local remainingMinutes = 60 - elapsedMinutes
+                
+                if remainingMinutes > 0 then
+                    local timerText = string.format("⏳ Settlement: %.1f min remaining", remainingMinutes)
+                    self:drawText(timerText, 10, currentY, 0, 1, 1, 1, UIFont.Small)
+                    currentY = currentY + 20
+                end
+            end
+        end
+        
+        -- Show spawn delay status or paused status (after chunk indicator and ZtH timer)
         local spawnDelayActive = false
         local remainingMinutes = 0
         
@@ -703,6 +981,13 @@ function SpawnChunkHUD:render()
         yPos = yPos + 15
         
         self:drawText("Zombie Population: " .. zombieCount, 10, yPos, 1, 1, 1, 1, UIFont.Small)
+        yPos = yPos + 15
+        
+        -- Show view distance info
+        local viewDist = SpawnChunk.getViewDistance()
+        local inVehicle = pl:getVehicle() and true or false
+        local vehicleStatus = inVehicle and " (In Vehicle)" or " (On Foot)"
+        self:drawText("Marker View Distance: " .. viewDist .. " tiles" .. vehicleStatus, 10, yPos, 0.7, 1, 1, 1, UIFont.Small)
         yPos = yPos + 15
         
         -- Always show attacking structure status
